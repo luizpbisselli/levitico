@@ -6,6 +6,10 @@
     Configure aqui o banco de dados e a caixa de e-mail que alimenta o sistema com os XMLs de NF-e/CT-e.
     Tudo é salvo no próprio sistema — não é preciso editar <code>.env</code> nem acessar terminal/SSH.
 </p>
+<p class="text-xs text-gray-500 mb-6 -mt-4">
+    🔒 Esta tela é exclusiva de administradores. As senhas são gravadas cifradas no banco,
+    nunca aparecem na tela depois de salvas e cada alteração fica registrada na auditoria.
+</p>
 
 {{-- ===================== BANCO DE DADOS ===================== --}}
 <div class="bg-white rounded shadow p-5 mb-6 max-w-3xl">
@@ -49,7 +53,7 @@
                 <span class="font-medium">Senha MySQL</span>
                 <input name="db_password" type="password" value=""
                        class="mt-1 w-full border rounded px-2 py-1.5"
-                       placeholder="{{ !empty($config['db.password']) ? '•••••••• (deixe em branco para manter)' : 'senha do banco' }}">
+                       placeholder="{{ $dbPasswordConfigurada ? '•••••••• já salva (deixe em branco para manter)' : 'senha do banco' }}">
             </label>
             <label class="block text-sm">
                 <span class="font-medium">Prefixo de tabela (opcional)</span>
@@ -111,7 +115,7 @@
                 <span class="font-medium">Senha</span>
                 <input name="email_password" type="password" value=""
                        class="mt-1 w-full border rounded px-2 py-1.5"
-                       placeholder="{{ !empty($config['email.password']) ? '•••••••• (deixe em branco para manter)' : 'senha do e-mail' }}">
+                       placeholder="{{ $emailConfigurado ? '•••••••• já salva (deixe em branco para manter)' : 'senha do e-mail' }}">
             </label>
             <label class="block text-sm">
                 <span class="font-medium">Pasta de entrada</span>

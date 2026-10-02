@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditoriaLog;
 use App\Models\Configuracao;
 use App\Support\DatabaseConfigurator;
 use App\Services\ImapMailboxService;
@@ -24,12 +25,29 @@ class ConfiguracaoController extends Controller
     public function index()
     {
         return view('admin.configuracoes', [
-            'config'          => Configuracao::allValues(),
+            // Apenas campos NÃO sigilosos vão para a tela; senhas ficam no servidor
+            // e são representadas por emailConfigurado/dbPasswordConfigurada.
+            'config'          => $this->valoresExibiveis(),
+            'dbPasswordConfigurada' => ! empty(Configuracao::get('db.password')),
             'driverAtual'     => Configuracao::get('db.driver', env('DB_CONNECTION', 'sqlite')),
             'imapDisponivel'  => ImapMailboxService::usandoExtImap(),
             'emailConfigurado' => ImapMailboxService::estaConfigurado(),
-            'statusUltimos'   => \App\Models\EmailIngestao::latest()->limit(10)->get(),
+            'statusUltimos'   => \App\Models\EmailIngestao::latest()->limit(10)->get(['id', 'message_id', 'assunto', 'remetente', 'status', 'lido_em']),
         ]);
+    }
+
+    /**
+     * Whitelist de chaves exibíveis na UI. Qualquer chave nova com credencial
+     * fica automaticamente fora da tela, pois só aparece se listada aqui.
+     */
+    private function valoresExibiveis(): array
+    {
+        $exibiveis = ['db.host', 'db.port', 'db.database', 'db.username', 'db.prefixo_tabela',
+                      'email.host', 'email.port', 'email.user', 'email.box', 'email.pasta_processados'];
+
+        $todos = Configuracao::allValues();
+
+        return array_intersect_key($todos, array_flip($exibiveis));
     }
 
     public function salvarBanco(Request $request)
@@ -73,6 +91,14 @@ class ConfiguracaoController extends Controller
             Configuracao::put('db.driver', 'sqlite');
         }
 
+        AuditoriaLog::create([
+            'user_id' => $request->user()?->id,
+            'acao'    => 'config.banco',
+            'modelo'  => 'configuracoes',
+            'payload' => ['driver' => $dados['db_driver'], 'host' => $dados['db_host'] ?? null],
+            'ip'      => $request->ip(),
+        ]);
+
         return back()->with('sucesso_banco', 'Configurações de banco salvas. As tabelas serão criadas/atualizadas automaticamente no próximo acesso.');
     }
 
@@ -95,6 +121,14 @@ class ConfiguracaoController extends Controller
         }
         Configuracao::put('email.box', $dados['email_box'] ?? 'INBOX');
         Configuracao::put('email.pasta_processados', $dados['email_pasta_processados'] ?? 'Processados');
+
+        AuditoriaLog::create([
+            'user_id' => $request->user()?->id,
+            'acao'    => 'config.email',
+            'modelo'  => 'configuracoes',
+            'payload' => ['host' => $dados['email_host'] ?? null, 'user' => $dados['email_user'] ?? null],
+            'ip'      => $request->ip(),
+        ]);
 
         return back()->with('sucesso_email', 'Configurações de e-mail salvas.');
     }
