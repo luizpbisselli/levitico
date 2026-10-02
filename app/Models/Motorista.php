@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Motorista extends Model
 {
+    protected $table = 'motoristas';
+
     protected $fillable = ['user_id', 'nome', 'cnh', 'telefone', 'agregado', 'extras'];
 
     protected $casts = ['extras' => 'array', 'agregado' => 'boolean'];
