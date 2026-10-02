@@ -14,6 +14,25 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
 
+// ---------- Gatilho de cron via HTTP (alternativa ao public/cron.php) ----------
+// Para planos onde o PHP CLI está bloqueado: agende cron-job.org / UptimeRobot
+// chamando https://seu-dominio.com/run-cron?token=CRON_TOKEN a cada minuto.
+Route::get('/run-cron', function (Illuminate\Http\Request $request) {
+    $token = trim((string) env('CRON_TOKEN', ''));
+
+    if ($token === '') {
+        abort(403, 'Defina CRON_TOKEN no .env para habilitar o gatilho HTTP.');
+    }
+
+    if (! hash_equals($token, (string) $request->query('token', ''))) {
+        abort(403);
+    }
+
+    Illuminate\Support\Facades\Artisan::call('schedule:run');
+
+    return response('ok', 200);
+})->withoutMiddleware(['web']); // sem sessão/CSRF: é um webhook interno
+
 // ---------- Autenticação ----------
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'form'])->name('login.form');
