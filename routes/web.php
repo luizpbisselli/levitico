@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PendenciaController;
 use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\VeiculoController;
 use App\Http\Controllers\Admin\WhatsappModeloController;
+use App\Http\Controllers\Admin\ConfiguracaoController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Motorista\HomeController as MotoristaHome;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +59,14 @@ Route::middleware(['auth', 'profile:admin', 'audit'])->prefix('admin')->name('ad
     Route::resource('modelos', WhatsappModeloController::class)
         ->only(['index', 'edit', 'update'])
         ->parameters(['modelos' => 'modelo']);
+
+    // Configurações (banco MySQL + caixa de e-mail de ingestão) — sem SSH/.env
+    Route::get('configuracoes', [ConfiguracaoController::class, 'index'])->name('configuracoes');
+    Route::post('configuracoes/banco', [ConfiguracaoController::class, 'salvarBanco'])->name('configuracoes.banco');
+    Route::post('configuracoes/banco/testar', [ConfiguracaoController::class, 'testarBanco'])->name('configuracoes.banco.testar');
+    Route::post('configuracoes/email', [ConfiguracaoController::class, 'salvarEmail'])->name('configuracoes.email');
+    Route::post('configuracoes/email/testar', [ConfiguracaoController::class, 'testarEmail'])->name('configuracoes.email.testar');
+    Route::post('configuracoes/email/processar', [ConfiguracaoController::class, 'processarAgora'])->name('configuracoes.email.processar');
 });
 
 // ---------- Área do Motorista (mobile first, perfil motorista) ----------

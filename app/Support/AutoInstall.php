@@ -126,6 +126,10 @@ class AutoInstall
     public static function migrationsApplied(): bool
     {
         try {
+            if (! static::ensureDatabaseFile()) {
+                return false;
+            }
+
             if (! Schema::hasTable('users')) {
                 return false;
             }

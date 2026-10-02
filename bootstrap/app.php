@@ -21,3 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+
+/*
+ * Override da conexão de banco a partir das configurações salvas no sistema
+ * (tabela `configuracoes`), permitindo apontar para um MySQL criado no cPanel
+ * sem editar .env e sem SSH. Executado antes de qualquer uso do DB, inclusive
+ * pelo AutoInstall. Falha silenciosa: mantém o padrão do config/database.php.
+ */
+\App\Support\DatabaseConfigurator::apply();
+
+return $app;

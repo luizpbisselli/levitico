@@ -20,6 +20,7 @@
         <a href="{{ route('admin.pendencias') }}" class="hover:underline text-sm">Pendências</a>
         <a href="{{ route('admin.modelos.index') }}" class="hover:underline text-sm">WhatsApp</a>
         <a href="{{ route('admin.relatorios') }}" class="hover:underline text-sm">Relatórios</a>
+        <a href="{{ route('admin.configuracoes') }}" class="hover:underline text-sm">⚙️ Configurações</a>
     @else
         <a href="{{ route('motorista.home') }}" class="hover:underline text-sm font-semibold">Minhas entregas</a>
     @endif
@@ -34,6 +35,16 @@
     @if(session('status'))
         <div class="bg-green-100 border border-green-300 text-green-800 rounded p-3 mb-4">{{ session('status') }}</div>
     @endif
+    @foreach(['sucesso_banco', 'sucesso_email'] as $k)
+        @if(session($k))
+            <div class="bg-green-100 border border-green-300 text-green-800 rounded p-3 mb-4">{{ session($k) }}</div>
+        @endif
+    @endforeach
+    @foreach(['erro_banco', 'erro_email'] as $k)
+        @if(session($k))
+            <div class="bg-red-100 border border-red-300 text-red-800 rounded p-3 mb-4">{{ session($k) }}</div>
+        @endif
+    @endforeach
     @if($errors->any())
         <div class="bg-red-100 border border-red-300 text-red-800 rounded p-3 mb-4">
             <ul class="list-disc list-inside">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
