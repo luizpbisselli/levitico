@@ -14,8 +14,7 @@ jobs:
     env:
       FTP_HOST_SECONDARY: ${{ secrets.FTP_HOST_SECONDARY }}
       FTP_USER_SECONDARY: ${{ secrets.FTP_USER_SECONDARY }}
-      FTP_PASSWORD_SECONDARY: ${{ secrets.FTP_PASSWORD_SECONDARY }}
-      CAMALEAO_SMOKE_URL_MAIN: ${{ secrets.CAMALEAO_SMOKE_URL_MAIN }}
+      FTP_PASSWORD_SECONDARY: ${{ secrets.FTP_PASSWORD_SECONDARY }}      
 
     steps:
       - name: Checkout do repositorio
@@ -31,7 +30,7 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: levitico/
-          local-dir: levitico/
+          local-dir: ./
           exclude: |
             **/.git*/**
             **/node_modules/**
@@ -47,7 +46,7 @@ jobs:
           username: ${{ secrets.FTP_USER_SECONDARY }}
           password: ${{ secrets.FTP_PASSWORD_SECONDARY }}
           server-dir: ${{ secrets.FTP_REMOTE_PATH_SECONDARY || 'levitico/' }}
-          local-dir: levitico/
+          local-dir: ./
           exclude: |
             **/.git*/**
             **/node_modules/**
