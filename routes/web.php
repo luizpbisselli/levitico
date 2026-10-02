@@ -22,10 +22,13 @@ Route::get('/run-cron', function (Illuminate\Http\Request $request) {
     $token = trim((string) env('CRON_TOKEN', ''));
 
     if ($token === '') {
-        abort(403, 'Defina CRON_TOKEN no .env para habilitar o gatilho HTTP.');
-    }
-
-    if (! hash_equals($token, (string) $request->query('token', ''))) {
+        // Sem token configurado: só permite disparo local/loopback (nunca remoto),
+        // para que o agendador do cPanel via curl localhost continue funcionando.
+        $ip = $request->ip();
+        if (! in_array($ip, ['127.0.0.1', '::1'], true)) {
+            abort(403, 'Defina CRON_TOKEN no .env para habilitar o gatilho HTTP remoto.');
+        }
+    } elseif (! hash_equals($token, (string) $request->query('token', ''))) {
         abort(403);
     }
 
@@ -37,7 +40,10 @@ Route::get('/run-cron', function (Illuminate\Http\Request $request) {
 // ---------- Autenticação ----------
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'form'])->name('login.form');
-    Route::post('/login', [LoginController::class, 'store'])->name('login');
+    // Rate limit: até 10 tentativas de login por minuto por IP (README seção 5)
+    Route::post('/login', [LoginController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('login');
 });
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 

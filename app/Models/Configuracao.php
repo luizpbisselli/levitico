@@ -98,12 +98,38 @@ class Configuracao extends Model
     {
         $valor = $valor === null ? null : trim($valor);
 
+        if ($valor !== '' && $valor !== null) {
+            // Senhas nunca ficam em texto puro no banco (defesa em profundidade:
+            // se alguém baixar o .sqlite ou ler a tabela via outro script, não vê credenciais).
+            $valor = self::eSigilosa($chave) ? encrypt($valor) : $valor;
+        }
+
         static::updateOrCreate(
             ['chave' => $chave],
-            ['valor' => ($valor === '' ? null : $valor)]
+            ['valor' => ($valor === '' ? null : $valor), 'sigilosa' => self::eSigilosa($chave) ? 1 : 0]
         );
 
         self::$cache = null; // invalida cache da requisição
+    }
+
+    /** Chaves que carregam credenciais e devem ser cifradas/mascaradas. */
+    public static function eSigilosa(string $chave): bool
+    {
+        return str_contains($chave, 'password');
+    }
+
+    /** Descriptografa transparentemente valores sigilosos lidos do banco. */
+    protected static function decodificar(string $chave, string $valor): string
+    {
+        if (! self::eSigilosa($chave)) {
+            return $valor;
+        }
+
+        try {
+            return (string) decrypt($valor);
+        } catch (\Throwable) {
+            return $valor; // valor antigo em texto puro (legado) — segue funcionando
+        }
     }
 
     /** Remove todas as chaves de um grupo (ex.: 'db.' ou 'email.'). */
@@ -126,9 +152,10 @@ class Configuracao extends Model
         }
 
         try {
-            self::$cache = DB::table('configuracoes')
-                ->pluck('valor', 'chave')
-                ->map(fn ($v) => $v === null ? '' : (string) $v)
+            $linhas = DB::table('configuracoes')->get(['chave', 'valor']);
+
+            self::$cache = $linhas
+                ->mapWithKeys(fn ($l) => [$l->chave => $l->valor === null ? '' : self::decodificar($l->chave, (string) $l->valor)])
                 ->all();
         } catch (\Throwable) {
             self::$cache = [];
