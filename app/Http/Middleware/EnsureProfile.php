@@ -12,7 +12,9 @@ class EnsureProfile
     {
         $user = $request->user();
 
-        abort(403, 'Acesso restrito.', ! $user || $user->profile !== $profile);
+        if (! $user || $user->profile !== $profile) {
+            abort(403, 'Acesso restrito.');
+        }
 
         return $next($request);
     }

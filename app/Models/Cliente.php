@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Model;
+use Illuminate\Database\Eloquent\Model;
 
 class Cliente extends Model
 {

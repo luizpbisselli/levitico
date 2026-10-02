@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Model;
+use Illuminate\Database\Eloquent\Model;
 
 class Nfe extends Model
 {
+    protected $table = 'nfes';
+
     protected $fillable = [
         'chave_acesso', 'numero', 'serie', 'emissao', 'emitente_nome', 'emitente_cnpj',
         'destinatario_nome', 'destinatario_documento', 'destinatario_telefone',
