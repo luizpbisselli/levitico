@@ -22,7 +22,7 @@ class AuditAdminAction
             AuditoriaLog::create([
                 'user_id' => $request->user()->id,
                 'acao'    => strtolower($request->method()),
-                'modelo'  => $request->route()?->getRouteName(),
+                'modelo'  => $request->route()?->getName(),
                 'payload' => ['uri' => $request->fullUrl(), 'input' => $request->except(['_token', '_previous', 'password', 'password_confirmation', 'db_password', 'email_password'])],
                 'ip'      => $request->ip(),
             ]);
