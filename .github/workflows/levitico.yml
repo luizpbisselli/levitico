@@ -1,0 +1,56 @@
+name: Deploy levitico
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '/**'
+      - '.github/workflows/levitico.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FTP_HOST_SECONDARY: ${{ secrets.FTP_HOST_SECONDARY }}
+      FTP_USER_SECONDARY: ${{ secrets.FTP_USER_SECONDARY }}
+      FTP_PASSWORD_SECONDARY: ${{ secrets.FTP_PASSWORD_SECONDARY }}
+      CAMALEAO_SMOKE_URL_MAIN: ${{ secrets.CAMALEAO_SMOKE_URL_MAIN }}
+
+    steps:
+      - name: Checkout do repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Deploy FTP primario
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: levitico/
+          local-dir: levitico/
+          exclude: |
+            **/.git*/**
+            **/node_modules/**
+            **/.angular/**
+            v4/v6-frontend/**
+            v4/.v6-build/**
+
+      - name: Deploy FTP secundario (opcional)
+        if: ${{ env.FTP_HOST_SECONDARY != '' && env.FTP_USER_SECONDARY != '' && env.FTP_PASSWORD_SECONDARY != '' }}
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST_SECONDARY }}
+          username: ${{ secrets.FTP_USER_SECONDARY }}
+          password: ${{ secrets.FTP_PASSWORD_SECONDARY }}
+          server-dir: ${{ secrets.FTP_REMOTE_PATH_SECONDARY || 'levitico/' }}
+          local-dir: levitico/
+          exclude: |
+            **/.git*/**
+            **/node_modules/**
+            **/.angular/**
+            v4/v6-frontend/**
+            v4/.v6-build/**
