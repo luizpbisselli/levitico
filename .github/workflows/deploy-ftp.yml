@@ -1,0 +1,30 @@
+name: Deploy via FTP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Deploy FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: levitico/
+          local-dir: ./
+          exclude: |
+            **/.git*/**
+            **/node_modules/**
+            **/.angular/**
+            v4/v6-frontend/**
+            v4/.v6-build/**
+            tests/**
+            .github/**
