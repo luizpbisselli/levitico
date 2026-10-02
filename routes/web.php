@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\PendenciaController;
 use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\VeiculoController;
 use App\Http\Controllers\Admin\WhatsappModeloController;
+use App\Http\Controllers\Admin\ConfiguracaoController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Motorista\HomeController as MotoristaHome;
 use Illuminate\Support\Facades\Route;
@@ -21,10 +22,13 @@ Route::get('/run-cron', function (Illuminate\Http\Request $request) {
     $token = trim((string) env('CRON_TOKEN', ''));
 
     if ($token === '') {
-        abort(403, 'Defina CRON_TOKEN no .env para habilitar o gatilho HTTP.');
-    }
-
-    if (! hash_equals($token, (string) $request->query('token', ''))) {
+        // Sem token configurado: só permite disparo local/loopback (nunca remoto),
+        // para que o agendador do cPanel via curl localhost continue funcionando.
+        $ip = $request->ip();
+        if (! in_array($ip, ['127.0.0.1', '::1'], true)) {
+            abort(403, 'Defina CRON_TOKEN no .env para habilitar o gatilho HTTP remoto.');
+        }
+    } elseif (! hash_equals($token, (string) $request->query('token', ''))) {
         abort(403);
     }
 
@@ -36,7 +40,10 @@ Route::get('/run-cron', function (Illuminate\Http\Request $request) {
 // ---------- Autenticação ----------
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'form'])->name('login.form');
-    Route::post('/login', [LoginController::class, 'store'])->name('login');
+    // Rate limit: até 10 tentativas de login por minuto por IP (README seção 5)
+    Route::post('/login', [LoginController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('login');
 });
 Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');
 
@@ -58,6 +65,14 @@ Route::middleware(['auth', 'profile:admin', 'audit'])->prefix('admin')->name('ad
     Route::resource('modelos', WhatsappModeloController::class)
         ->only(['index', 'edit', 'update'])
         ->parameters(['modelos' => 'modelo']);
+
+    // Configurações (banco MySQL + caixa de e-mail de ingestão) — sem SSH/.env
+    Route::get('configuracoes', [ConfiguracaoController::class, 'index'])->name('configuracoes');
+    Route::post('configuracoes/banco', [ConfiguracaoController::class, 'salvarBanco'])->name('configuracoes.banco');
+    Route::post('configuracoes/banco/testar', [ConfiguracaoController::class, 'testarBanco'])->name('configuracoes.banco.testar');
+    Route::post('configuracoes/email', [ConfiguracaoController::class, 'salvarEmail'])->name('configuracoes.email');
+    Route::post('configuracoes/email/testar', [ConfiguracaoController::class, 'testarEmail'])->name('configuracoes.email.testar');
+    Route::post('configuracoes/email/processar', [ConfiguracaoController::class, 'processarAgora'])->name('configuracoes.email.processar');
 });
 
 // ---------- Área do Motorista (mobile first, perfil motorista) ----------

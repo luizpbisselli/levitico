@@ -23,7 +23,7 @@ class AuditAdminAction
                 'user_id' => $request->user()->id,
                 'acao'    => strtolower($request->method()),
                 'modelo'  => $request->route()?->getRouteName(),
-                'payload' => ['uri' => $request->fullUrl(), 'input' => $request->except(['_token', 'password'])],
+                'payload' => ['uri' => $request->fullUrl(), 'input' => $request->except(['_token', '_previous', 'password', 'password_confirmation', 'db_password', 'email_password'])],
                 'ip'      => $request->ip(),
             ]);
         }
