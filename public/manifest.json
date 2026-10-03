@@ -2,8 +2,8 @@
   "name": "Levítico Fretes & Conciliação",
   "short_name": "Fretes",
   "description": "Sistema de conciliação de fretes CT-e/NF-e com área do motorista e painel administrativo",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/levitico/",
+  "scope": "/levitico/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0f172a",
@@ -11,13 +11,13 @@
   "categories": ["business", "logistics", "productivity"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "/levitico/icons/icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.svg",
+      "src": "/levitico/icons/icon-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
@@ -28,15 +28,15 @@
       "name": "Minhas Entregas",
       "short_name": "Entregas",
       "description": "Acesse as entregas do motorista",
-      "url": "/motorista",
-      "icons": [{ "src": "/icons/icon.svg", "sizes": "192x192" }]
+      "url": "/levitico/motorista",
+      "icons": [{ "src": "/levitico/icons/icon.svg", "sizes": "192x192" }]
     },
     {
       "name": "Painel Admin",
       "short_name": "Admin",
       "description": "Dashboard e gestão de fretes",
-      "url": "/admin",
-      "icons": [{ "src": "/icons/icon.svg", "sizes": "192x192" }]
+      "url": "/levitico/admin",
+      "icons": [{ "src": "/levitico/icons/icon.svg", "sizes": "192x192" }]
     }
   ]
 }

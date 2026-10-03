@@ -78,7 +78,7 @@ if ($expectedToken !== '' && (string) ($_GET['token'] ?? '') !== $expectedToken)
     </ul>
 
     <?php if ($result['ok']): ?>
-        <a class="btn" href="/login">Ir para o login →</a>
+        <a class="btn" href="/levitico/login">Ir para o login →</a>
         <p class="note">
             Primeiro acesso: <b>admin@fretes.local</b> / <b>admin123</b> (troque a senha!).<br>
             Recomendado: apague ou renomeie este <code>install.php</code> após a instalação.
