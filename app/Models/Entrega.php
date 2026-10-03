@@ -18,10 +18,15 @@ class Entrega extends Model
     protected $fillable = [
         'cte_id', 'veiculo_id', 'motorista_id', 'cliente_id', 'status',
         'endereco_entrega', 'cidade_entrega', 'uf_entrega',
-        'observacao_ocorrencia', 'saiu_em', 'entregue_em',
+        'observacao_ocorrencia', 'comprovante_path', 'comprovante_enviado_em',
+        'saiu_em', 'entregue_em',
     ];
 
-    protected $casts = ['saiu_em' => 'datetime', 'entregue_em' => 'datetime'];
+    protected $casts = [
+        'saiu_em'                => 'datetime',
+        'entregue_em'            => 'datetime',
+        'comprovante_enviado_em' => 'datetime',
+    ];
 
     public function cte()      { return $this->belongsTo(Cte::class); }
     public function veiculo()  { return $this->belongsTo(Veiculo::class); }
@@ -31,5 +36,10 @@ class Entrega extends Model
     public function statusLabel(): string
     {
         return self::STATUS[$this->status] ?? $this->status;
+    }
+
+    public function temComprovante(): bool
+    {
+        return ! empty($this->comprovante_path);
     }
 }

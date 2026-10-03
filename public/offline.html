@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sem Conexão · Fretes</title>
+    <meta name="theme-color" content="#1e293b">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0284c7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            color: #f8fafc;
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 1.25rem;
+            padding: 2rem;
+            max-width: 26rem;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+        h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
+        p { font-size: 0.925rem; color: #94a3b8; line-height: 1.5; margin-bottom: 1.5rem; }
+        button {
+            width: 100%;
+            padding: 0.85rem;
+            background: #0284c7;
+            color: #fff;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #0369a1; }
+        button:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">📡</div>
+        <h1>Você está sem conexão</h1>
+        <p>Verifique o sinal de internet do seu celular ou Wi-Fi para atualizar as entregas e acessar o painel.</p>
+        <button onclick="window.location.reload()">🔄 Tentar novamente</button>
+    </div>
+</body>
+</html>

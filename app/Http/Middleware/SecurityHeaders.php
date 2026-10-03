@@ -36,7 +36,7 @@ class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
-        $csp = "frame-ancestors 'self'; base-uri 'self'; form-action 'self'";
+        $csp = "frame-ancestors 'self'; base-uri 'self'; form-action 'self'; img-src 'self' data: blob:";
         if ($this->isLoginPage($request)) {
             // Página de login: também restringe scripts/styles ao próprio domínio
             // (defesa em profundidade contra XSS que injete exfiltração de credenciais).
@@ -47,7 +47,7 @@ class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
 
         return $response;
     }

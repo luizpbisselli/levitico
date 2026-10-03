@@ -26,7 +26,11 @@
             <td class="p-3">
                 @php $entrega = $cte->entregas()->latest()->first(); @endphp
                 @if($entrega && $entrega->veiculo_id)
-                    {{ strtoupper($entrega->veiculo->placa) }} · {{ $entrega->statusLabel() }}
+                    <div>{{ strtoupper($entrega->veiculo->placa) }} · {{ $entrega->statusLabel() }}</div>
+                    @if($entrega->temComprovante())
+                        <a href="{{ route('admin.entregas.comprovante', $entrega) }}" target="_blank"
+                           class="inline-block mt-1 text-xs bg-emerald-100 text-green-800 border border-green-300 px-2 py-0.5 rounded font-semibold hover:bg-emerald-200">📸 Ver Canhoto</a>
+                    @endif
                 @else
                     <form method="POST" action="{{ route('admin.documentos.atribuirVeiculo', $cte) }}" class="flex gap-1">
                         @csrf

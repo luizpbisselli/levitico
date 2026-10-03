@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Conciliação de Fretes')</title>
+
+    {{-- PWA & Mobile Web App Meta Tags --}}
+    <meta name="theme-color" content="#1e293b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fretes">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-512.svg">
+
     {{-- Tailwind servido localmente: o CDN viola a CSP da página de login (script-src 'self') --}}
     <style>
 *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
@@ -73,12 +84,16 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,s
 .hover\:bg-red-700:hover{background:#b91c1c}.hover\:bg-emerald-500:hover{background:#10b981}.hover\:underline:hover{text-decoration:underline}
 .active\:bg-blue-700:active{background:#1d4ed8}.active\:bg-green-700:active{background:#15803d}
 .overflow-x-auto{overflow-x:auto}
+.cursor-pointer{cursor:pointer}
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
 @auth
 <nav class="bg-slate-800 text-white px-4 py-3 flex flex-wrap items-center gap-3">
-    <span class="font-bold mr-4">🚛 Fretes</span>
+    <span class="font-bold mr-4 flex items-center gap-1.5">
+        <img src="/icons/icon.svg" alt="Logo" class="w-6 h-6 inline-block">
+        <span>Fretes</span>
+    </span>
     @if(auth()->user()->isAdmin())
         <a href="{{ route('admin.dashboard') }}" class="hover:underline text-sm">Dashboard</a>
         <a href="{{ route('admin.documentos.ctes') }}" class="hover:underline text-sm">CT-e</a>
@@ -94,10 +109,14 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,s
     @else
         <a href="{{ route('motorista.home') }}" class="hover:underline text-sm font-semibold">Minhas entregas</a>
     @endif
-    <form method="POST" action="{{ route('logout') }}" class="ml-auto">
-        @csrf
-        <button class="text-sm bg-slate-600 hover:bg-slate-500 px-3 py-1 rounded">{{ auth()->user()->name }} · Sair</button>
-    </form>
+    
+    <div class="ml-auto flex items-center gap-2">
+        <button id="pwaInstallBtn" class="hidden text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-2.5 py-1 rounded shadow">📲 Instalar App</button>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button class="text-sm bg-slate-600 hover:bg-slate-500 px-3 py-1 rounded">{{ auth()->user()->name }} · Sair</button>
+        </form>
+    </div>
 </nav>
 @endauth
 
@@ -122,5 +141,42 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,s
     @endif
     @yield('content')
 </main>
+
+<script>
+    // Registro do Service Worker para PWA (Admin + Motorista)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+                // Sucesso no registro
+            }).catch((err) => {
+                console.debug('ServiceWorker falhou:', err);
+            });
+        });
+    }
+
+    // Intercepta e gerencia o botão de instalação nativo do PWA
+    let deferredPrompt;
+    const installBtn = document.getElementById('pwaInstallBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) {
+            installBtn.classList.remove('hidden');
+            installBtn.addEventListener('click', async () => {
+                installBtn.classList.add('hidden');
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                }
+            });
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        if (installBtn) installBtn.classList.add('hidden');
+        deferredPrompt = null;
+    });
+</script>
 </body>
 </html>

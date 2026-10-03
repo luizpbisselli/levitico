@@ -63,6 +63,7 @@ Route::middleware(['auth', 'profile:admin', 'audit'])->prefix('admin')->name('ad
 
     Route::get('pendencias', [PendenciaController::class, 'index'])->name('pendencias');
     Route::get('relatorios', [RelatorioController::class, 'index'])->name('relatorios');
+    Route::get('entregas/{entrega}/comprovante', [DocumentoController::class, 'verComprovante'])->name('entregas.comprovante');
 
     // Usuários do sistema (admin/motorista) — cadastro e administração de logins
     Route::resource('usuarios', UsuarioController::class)
@@ -86,4 +87,5 @@ Route::middleware(['auth', 'profile:motorista'])->prefix('motorista')->name('mot
     Route::get('/', [MotoristaHome::class, 'index'])->name('home');
     Route::get('entregas/{entrega}', [MotoristaHome::class, 'show'])->name('entregas.show');
     Route::post('entregas/{entrega}/status', [MotoristaHome::class, 'atualizarStatus'])->name('entregas.status');
+    Route::get('entregas/{entrega}/comprovante', [MotoristaHome::class, 'verComprovante'])->name('entregas.comprovante');
 });

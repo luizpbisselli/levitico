@@ -19,7 +19,7 @@
 <table class="w-full bg-white rounded shadow text-sm">
     <thead><tr class="text-left border-b bg-gray-50">
         <th class="p-3">CT-e</th><th class="p-3">Placa</th><th class="p-3">Motorista</th><th class="p-3">Cliente</th>
-        <th class="p-3">Cidade/UF</th><th class="p-3">Status</th><th class="p-3">Frete (R$)</th><th class="p-3">Criada</th><th class="p-3">Entregue</th>
+        <th class="p-3">Cidade/UF</th><th class="p-3">Status</th><th class="p-3">Frete (R$)</th><th class="p-3">Canhoto</th><th class="p-3">Criada</th><th class="p-3">Entregue</th>
     </tr></thead>
     <tbody>
     @foreach($entregas as $e)
@@ -31,6 +31,14 @@
             <td class="p-3">{{ $e->cidade_entrega }}/{{ $e->uf_entrega }}</td>
             <td class="p-3">{{ $e->statusLabel() }}</td>
             <td class="p-3">{{ $e->cte ? number_format((float) $e->cte->valor_frete, 2, ',', '.') : '' }}</td>
+            <td class="p-3">
+                @if($e->temComprovante())
+                    <a href="{{ route('admin.entregas.comprovante', $e) }}" target="_blank"
+                       class="text-xs bg-emerald-100 text-green-800 border border-green-300 px-2 py-0.5 rounded font-semibold hover:bg-emerald-200">📸 Ver</a>
+                @else
+                    <span class="text-xs text-gray-400">—</span>
+                @endif
+            </td>
             <td class="p-3">{{ $e->created_at->format('d/m/Y H:i') }}</td>
             <td class="p-3">{{ $e->entregue_em?->format('d/m/Y H:i') ?? '—' }}</td>
         </tr>

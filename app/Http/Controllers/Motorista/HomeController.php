@@ -44,7 +44,7 @@ class HomeController extends Controller
         return view('motorista.entrega', compact('entrega', 'mensagem', 'waUrl'));
     }
 
-    /** Botões rápidos: Saí para entrega / Entregue / Ocorrência. */
+    /** Botões rápidos: Saí para entrega / Entregue / Ocorrência e envio de Canhoto. */
     public function atualizarStatus(Request $request, Entrega $entrega)
     {
         $this->authorize('updateStatus', $entrega);
@@ -52,6 +52,7 @@ class HomeController extends Controller
         $dados = $request->validate([
             'status'      => ['required', 'in:em_transito,entregue,ocorrencia'],
             'observacao'  => ['nullable', 'string', 'max:1000', 'required_if:status,ocorrencia'],
+            'comprovante' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
         ]);
 
         $entrega->status = $dados['status'];
@@ -64,9 +65,34 @@ class HomeController extends Controller
         if ($dados['status'] === 'ocorrencia') {
             $entrega->observacao_ocorrencia = $dados['observacao'] ?? null;
         }
+
+        // Upload do Canhoto / Comprovante
+        if ($request->hasFile('comprovante')) {
+            $path = $request->file('comprovante')->store('comprovantes', 'public');
+            $entrega->comprovante_path = $path;
+            $entrega->comprovante_enviado_em = now();
+        }
+
         $entrega->save();
 
-        return back()->with('status', 'Status atualizado: '.$entrega->statusLabel().'.');
+        return back()->with('status', 'Status atualizado: '.$entrega->statusLabel().($entrega->temComprovante() ? ' (Comprovante anexado)' : '').'.');
+    }
+
+    /** Exibe o comprovante / canhoto de forma protegida para o motorista. */
+    public function verComprovante(Request $request, Entrega $entrega)
+    {
+        $this->authorize('view', $entrega);
+
+        if (! $entrega->comprovante_path) {
+            abort(404, 'Comprovante não encontrado.');
+        }
+
+        $filePath = storage_path('app/public/' . $entrega->comprovante_path);
+        if (! file_exists($filePath)) {
+            abort(404, 'Arquivo de comprovante inexistente no servidor.');
+        }
+
+        return response()->file($filePath);
     }
 
     private function entregasDoMotorista($motorista)

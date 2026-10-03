@@ -63,4 +63,19 @@ class DocumentoController extends Controller
 
         return back()->with('status', "Veículo atribuído ao CT-e {$cte->numero}.");
     }
+
+    /** Visualização do comprovante / canhoto de entrega pelo administrador. */
+    public function verComprovante(\App\Models\Entrega $entrega): Response
+    {
+        if (! $entrega->comprovante_path) {
+            abort(404, 'Comprovante não encontrado.');
+        }
+
+        $filePath = storage_path('app/public/' . $entrega->comprovante_path);
+        if (! file_exists($filePath)) {
+            abort(404, 'Arquivo de comprovante inexistente no servidor.');
+        }
+
+        return response()->file($filePath);
+    }
 }
