@@ -80,6 +80,7 @@ Route::middleware(['auth', 'profile:admin', 'audit'])->prefix('admin')->name('ad
     Route::post('configuracoes/email', [ConfiguracaoController::class, 'salvarEmail'])->name('configuracoes.email');
     Route::post('configuracoes/email/testar', [ConfiguracaoController::class, 'testarEmail'])->name('configuracoes.email.testar');
     Route::post('configuracoes/email/processar', [ConfiguracaoController::class, 'processarAgora'])->name('configuracoes.email.processar');
+    Route::post('ingestao/auto-sync', [ConfiguracaoController::class, 'autoSyncAjax'])->name('ingestao.autoSync');
 });
 
 // ---------- Área do Motorista (mobile first, perfil motorista) ----------

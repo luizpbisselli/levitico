@@ -183,4 +183,27 @@ class ConfiguracaoController extends Controller
 
         return back()->with('sucesso_email', $msg . '.');
     }
+
+    /** Disparo assíncrono via AJAX pelo timer do navegador logado como admin. */
+    public function autoSyncAjax(IngestaoRunner $runner)
+    {
+        if (! ImapMailboxService::estaConfigurado()) {
+            return response()->json([
+                'ok'      => false,
+                'motivo'  => 'nao_configurado',
+                'horario' => now()->format('H:i:s'),
+            ]);
+        }
+
+        $r = $runner->executar(20);
+
+        return response()->json([
+            'ok'          => empty($r['erros']),
+            'lidas'       => $r['lidas'],
+            'processados' => $r['processados'],
+            'pendencias'  => $r['pendencias'],
+            'erros'       => $r['erros'],
+            'horario'     => now()->format('H:i:s'),
+        ]);
+    }
 }

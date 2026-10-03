@@ -1,16 +1,29 @@
 @extends('layouts.app')
 @section('title', 'Entrar')
 @section('content')
-<div class="max-w-md mx-auto mt-16 bg-white rounded-lg shadow p-8">
-    <h1 class="text-xl font-bold mb-6">Entrar no sistema</h1>
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
-        <label class="block mb-1 text-sm font-medium">E-mail</label>
-        <input type="email" name="email" value="{{ old('email') }}" required autofocus
-               class="w-full border rounded p-2 mb-4">
-        <label class="block mb-1 text-sm font-medium">Senha</label>
-        <input type="password" name="password" required class="w-full border rounded p-2 mb-4">
-        <button class="w-full bg-slate-800 text-white rounded p-2 hover:bg-slate-700">Entrar</button>
-    </form>
+<div style="display:flex;align-items:center;justify-content:center;min-height:calc(100dvh - 6rem);padding:1rem">
+    <div class="card" style="width:100%;max-width:24rem">
+        <div class="card-body" style="padding:2rem">
+            <div style="text-align:center;margin-bottom:1.5rem">
+                <img src="/icons/icon.svg" alt="Logo" style="width:48px;height:48px;margin:0 auto .75rem">
+                <h1 style="font-size:1.25rem;font-weight:700;color:var(--c-text)">Entrar no sistema</h1>
+                <p style="font-size:.875rem;color:var(--c-text-muted);margin-top:.25rem">Conciliação de Fretes</p>
+            </div>
+            <form method="POST" action="{{ route('login') }}">
+                @csrf
+                <div style="margin-bottom:1rem">
+                    <label class="form-label">E-mail</label>
+                    <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                           class="form-input" placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <div style="margin-bottom:1.25rem">
+                    <label class="form-label">Senha</label>
+                    <input type="password" name="password" required
+                           class="form-input" placeholder="••••••••" autocomplete="current-password">
+                </div>
+                <button class="btn btn-dark btn-block btn-lg">Entrar</button>
+            </form>
+        </div>
+    </div>
 </div>
 @endsection

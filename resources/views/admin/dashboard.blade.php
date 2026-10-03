@@ -1,34 +1,61 @@
 @extends('layouts.app')
 @section('title', 'Dashboard')
 @section('content')
-<h1 class="text-2xl font-bold mb-4">Dashboard</h1>
-<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-    <div class="bg-white rounded shadow p-4"><div class="text-3xl font-bold">{{ $entregasHoje }}</div><div class="text-sm text-gray-500">Entregas hoje</div></div>
-    <div class="bg-white rounded shadow p-4"><div class="text-3xl font-bold">{{ $entregesAbertas }}</div><div class="text-sm text-gray-500">Em aberto</div></div>
-    <div class="bg-white rounded shadow p-4"><div class="text-3xl font-bold">{{ $entreguesHoje }}</div><div class="text-sm text-gray-500">Entregues hoje</div></div>
-    <div class="bg-white rounded shadow p-4"><div class="text-3xl font-bold">{{ $nfesTotal }}</div><div class="text-sm text-gray-500">NF-e</div></div>
-    <div class="bg-white rounded shadow p-4"><div class="text-3xl font-bold">{{ $ctesTotal }}</div><div class="text-sm text-gray-500">CT-e</div></div>
+<div class="page-header">
+    <h1 class="page-title">📊 Dashboard</h1>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+    <div class="stat-card">
+        <div class="stat-value">{{ $entregasHoje }}</div>
+        <div class="stat-label">Entregas hoje</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $entregesAbertas }}</div>
+        <div class="stat-label">Em aberto</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $entreguesHoje }}</div>
+        <div class="stat-label">Entregues hoje</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $nfesTotal }}</div>
+        <div class="stat-label">NF-e</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ $ctesTotal }}</div>
+        <div class="stat-label">CT-e</div>
+    </div>
 </div>
 
 <div class="grid md:grid-cols-2 gap-4">
-    <div class="bg-white rounded shadow p-4">
-        <h2 class="font-semibold mb-2">⚠️ Entrega sem veículo (placa não veio no XML)</h2>
-        @forelse($docsSemVeiculo as $e)
-            <div class="border-b py-2 text-sm">CT-e {{ $e->cte?->numero }} — {{ $e->cidade_entrega }}/{{ $e->uf_entrega }} · {{ $e->status }}</div>
-        @empty
-            <p class="text-sm text-gray-500">Nenhuma pendência. 🎉</p>
-        @endforelse
+    <div class="card">
+        <div class="card-body">
+            <h2 style="font-weight:600;margin-bottom:.75rem;font-size:1rem">⚠️ Entrega sem veículo</h2>
+            @forelse($docsSemVeiculo as $e)
+                <div style="border-bottom:1px solid var(--c-border);padding:.625rem 0;font-size:.875rem">
+                    <span style="font-weight:600">CT-e {{ $e->cte?->numero }}</span>
+                    <span style="color:var(--c-text-muted)"> — {{ $e->cidade_entrega }}/{{ $e->uf_entrega }}</span>
+                    <span class="badge badge-yellow" style="margin-left:.5rem">{{ $e->status }}</span>
+                </div>
+            @empty
+                <p style="font-size:.875rem;color:var(--c-text-muted)">Nenhuma pendência. 🎉</p>
+            @endforelse
+        </div>
     </div>
-    <div class="bg-white rounded shadow p-4">
-        <h2 class="font-semibold mb-2">📧 Erros de ingestão por e-mail</h2>
-        @forelse($pendenciasEmail as $log)
-            <div class="border-b py-2 text-sm">
-                <b>{{ $log->assunto }}</b> ({{ $log->remetente }})<br>
-                <span class="text-red-600">{{ $log->detalhes }}</span>
-            </div>
-        @empty
-            <p class="text-sm text-gray-500">Nenhum erro registrado.</p>
-        @endforelse
+    <div class="card">
+        <div class="card-body">
+            <h2 style="font-weight:600;margin-bottom:.75rem;font-size:1rem">📧 Erros de ingestão por e-mail</h2>
+            @forelse($pendenciasEmail as $log)
+                <div style="border-bottom:1px solid var(--c-border);padding:.625rem 0;font-size:.875rem">
+                    <div style="font-weight:600">{{ $log->assunto }}</div>
+                    <div style="font-size:.8125rem;color:var(--c-text-muted)">{{ $log->remetente }}</div>
+                    <div style="color:var(--c-danger);font-size:.8125rem;margin-top:.25rem">{{ $log->detalhes }}</div>
+                </div>
+            @empty
+                <p style="font-size:.875rem;color:var(--c-text-muted)">Nenhum erro registrado.</p>
+            @endforelse
+        </div>
     </div>
 </div>
 @endsection

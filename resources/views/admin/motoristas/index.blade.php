@@ -1,29 +1,31 @@
 @extends('layouts.app')
 @section('content')
-<div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">Motoristas</h1>
-    <a href="{{ route('admin.motoristas.create') }}" class="bg-slate-800 text-white px-4 py-2 rounded">+ Novo motorista</a>
+<div class="page-header">
+    <h1 class="page-title">👤 Motoristas</h1>
+    <a href="{{ route('admin.motoristas.create') }}" class="btn btn-dark btn-sm">+ Novo motorista</a>
 </div>
-<table class="w-full bg-white rounded shadow text-sm">
-    <thead><tr class="text-left border-b bg-gray-50"><th class="p-3">Nome</th><th class="p-3">CNH</th><th class="p-3">Telefone</th><th class="p-3">Agregado</th><th class="p-3">Veículos</th><th class="p-3">Login</th><th class="p-3"></th></tr></thead>
+<div class="table-wrap">
+<table class="resp-table">
+    <thead><tr><th>Nome</th><th>CNH</th><th>Telefone</th><th>Agregado</th><th>Veículos</th><th>Login</th><th></th></tr></thead>
     <tbody>
     @foreach($motoristas as $m)
-        <tr class="border-b">
-            <td class="p-3">{{ $m->nome }}</td>
-            <td class="p-3">{{ $m->cnh }}</td>
-            <td class="p-3">{{ $m->telefone }}</td>
-            <td class="p-3">{{ $m->agregado ? 'Sim' : 'Não' }}</td>
-            <td class="p-3">{{ $m->veiculos->pluck('placa')->join(', ') ?: '—' }}</td>
-            <td class="p-3">{{ $m->user?->email ?? 'sem login' }}</td>
-            <td class="p-3 text-right">
-                <a href="{{ route('admin.motoristas.edit', $m) }}" class="text-blue-700 hover:underline mr-3">Editar</a>
-                <form method="POST" action="{{ route('admin.motoristas.destroy', $m) }}" class="inline" onsubmit="return confirm('Remover?')">
-                    @csrf @method('DELETE')<button class="text-red-700 hover:underline">Remover</button>
+        <tr>
+            <td style="font-weight:600">{{ $m->nome }}</td>
+            <td>{{ $m->cnh }}</td>
+            <td>{{ $m->telefone }}</td>
+            <td><span class="badge {{ $m->agregado ? 'badge-yellow' : 'badge-slate' }}">{{ $m->agregado ? 'Sim' : 'Não' }}</span></td>
+            <td>{{ $m->veiculos->pluck('placa')->join(', ') ?: '—' }}</td>
+            <td style="font-size:.8125rem">{{ $m->user?->email ?? 'sem login' }}</td>
+            <td style="text-align:right;white-space:nowrap">
+                <a href="{{ route('admin.motoristas.edit', $m) }}" style="color:var(--c-primary);font-weight:500;font-size:.8125rem;margin-right:.75rem">Editar</a>
+                <form method="POST" action="{{ route('admin.motoristas.destroy', $m) }}" style="display:inline" onsubmit="return confirm('Remover?')">
+                    @csrf @method('DELETE')<button style="background:none;border:none;color:var(--c-danger);font-weight:500;font-size:.8125rem;cursor:pointer">Remover</button>
                 </form>
             </td>
         </tr>
     @endforeach
     </tbody>
 </table>
+</div>
 <div class="mt-4">{{ $motoristas->links() }}</div>
 @endsection

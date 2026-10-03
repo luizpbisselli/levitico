@@ -1,53 +1,56 @@
 @extends('layouts.app')
 @section('content')
-<div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-    <h1 class="text-2xl font-bold">CT-e recebidos</h1>
-    <form class="flex gap-2">
-        <input name="q" value="{{ request('q') }}" placeholder="Chave, número, placa, destinatário..." class="border rounded p-2 text-sm w-72">
-        <button class="bg-slate-800 text-white px-4 rounded">Buscar</button>
+<div class="page-header">
+    <h1 class="page-title">📄 CT-e recebidos</h1>
+    <form style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        <input name="q" value="{{ request('q') }}" placeholder="Chave, número, placa, destinatário..."
+               class="form-input" style="width:auto;min-width:0;flex:1;max-width:20rem">
+        <button class="btn btn-dark btn-sm">Buscar</button>
     </form>
 </div>
 @php $veiculos = \App\Models\Veiculo::orderBy('placa')->get(); @endphp
-<table class="w-full bg-white rounded shadow text-sm">
-    <thead><tr class="text-left border-b bg-gray-50">
-        <th class="p-3">Nº</th><th class="p-3">Emissão</th><th class="p-3">Destinatário</th><th class="p-3">Cidade/UF</th>
-        <th class="p-3">Frete (R$)</th><th class="p-3">Placa XML</th><th class="p-3">NF-e vinculadas</th><th class="p-3">Entrega</th><th class="p-3">XML</th>
+<div class="table-wrap">
+<table class="resp-table">
+    <thead><tr>
+        <th>Nº</th><th>Emissão</th><th>Destinatário</th><th>Cidade/UF</th>
+        <th>Frete (R$)</th><th>Placa XML</th><th>NF-e vinc.</th><th>Entrega</th><th>XML</th>
     </tr></thead>
     <tbody>
     @foreach($ctes as $cte)
-        <tr class="border-b align-top">
-            <td class="p-3">{{ $cte->numero }}</td>
-            <td class="p-3">{{ $cte->emissao?->format('d/m/Y') }}</td>
-            <td class="p-3">{{ $cte->destinatario_nome }}</td>
-            <td class="p-3">{{ $cte->destinatario_cidade }}/{{ $cte->destinatario_uf }}</td>
-            <td class="p-3">{{ number_format((float) $cte->valor_frete, 2, ',', '.') }}</td>
-            <td class="p-3 font-mono">{{ $cte->placa_informada ?? '—' }}</td>
-            <td class="p-3">{{ $cte->nfes->count() }}/{{ count(app(\App\Services\ConciliacaoService::class)->extrairChavesNfeDoXml((string) $cte->xml_original)) }}</td>
-            <td class="p-3">
+        <tr>
+            <td style="font-weight:600">{{ $cte->numero }}</td>
+            <td>{{ $cte->emissao?->format('d/m/Y') }}</td>
+            <td>{{ $cte->destinatario_nome }}</td>
+            <td>{{ $cte->destinatario_cidade }}/{{ $cte->destinatario_uf }}</td>
+            <td>{{ number_format((float) $cte->valor_frete, 2, ',', '.') }}</td>
+            <td class="font-mono">{{ $cte->placa_informada ?? '—' }}</td>
+            <td>{{ $cte->nfes->count() }}/{{ count(app(\App\Services\ConciliacaoService::class)->extrairChavesNfeDoXml((string) $cte->xml_original)) }}</td>
+            <td>
                 @php $entrega = $cte->entregas()->latest()->first(); @endphp
                 @if($entrega && $entrega->veiculo_id)
-                    <div>{{ strtoupper($entrega->veiculo->placa) }} · {{ $entrega->statusLabel() }}</div>
+                    <div style="font-size:.8125rem">{{ strtoupper($entrega->veiculo->placa) }} · <span class="badge badge-slate">{{ $entrega->statusLabel() }}</span></div>
                     @if($entrega->temComprovante())
                         <a href="{{ route('admin.entregas.comprovante', $entrega) }}" target="_blank"
-                           class="inline-block mt-1 text-xs bg-emerald-100 text-green-800 border border-green-300 px-2 py-0.5 rounded font-semibold hover:bg-emerald-200">📸 Ver Canhoto</a>
+                           class="btn btn-sm" style="margin-top:.375rem;background:#ecfdf5;color:#166534;border:1px solid #86efac;font-size:.75rem;padding:.25rem .5rem">📸 Canhoto</a>
                     @endif
                 @else
-                    <form method="POST" action="{{ route('admin.documentos.atribuirVeiculo', $cte) }}" class="flex gap-1">
+                    <form method="POST" action="{{ route('admin.documentos.atribuirVeiculo', $cte) }}" style="display:flex;gap:.25rem;align-items:center">
                         @csrf
-                        <select name="veiculo_id" class="border rounded p-1 text-xs">
-                            <option value="">Atribuir veículo…</option>
+                        <select name="veiculo_id" class="form-select" style="font-size:.75rem;padding:.375rem .5rem;width:auto;min-width:8rem">
+                            <option value="">Atribuir…</option>
                             @foreach($veiculos as $v)
                                 <option value="{{ $v->id }}">{{ $v->placa }}</option>
                             @endforeach
                         </select>
-                        <button class="bg-amber-600 text-white px-2 rounded text-xs">OK</button>
+                        <button class="btn btn-sm" style="background:#d97706;color:#fff;padding:.375rem .5rem">OK</button>
                     </form>
                 @endif
             </td>
-            <td class="p-3"><a target="_blank" href="{{ route('admin.documentos.xml', ['tipo' => 'cte', 'id' => $cte->id]) }}" class="text-blue-700 hover:underline">abrir</a></td>
+            <td><a href="{{ route('admin.documentos.xml', ['tipo' => 'cte', 'id' => $cte->id]) }}" target="_blank" style="color:var(--c-primary);font-weight:500;font-size:.8125rem">abrir</a></td>
         </tr>
     @endforeach
     </tbody>
 </table>
+</div>
 <div class="mt-4">{{ $ctes->links() }}</div>
 @endsection
