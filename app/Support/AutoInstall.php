@@ -26,7 +26,7 @@ class AutoInstall
     protected const SEED_FLAG_ID   = 'install_completed';
 
     /**
-     * Executa todos os passos de instalação.
+     * Executa todos os passos de instalação e migração no MySQL.
      *
      * @return array{steps: array<string,string>, ok: bool}
      */
@@ -34,10 +34,18 @@ class AutoInstall
     {
         $steps = [];
 
-        // 1) Banco SQLite
-        $steps['database'] = self::ensureDatabaseFile()
-            ? 'ok'
-            : 'erro: sem permissão para criar database/database.sqlite (ajuste as permissões da pasta database/ no cPanel)';
+        // 1) Conexão MySQL
+        $conexaoOk = self::ensureDatabaseConnection($erroDb);
+        $steps['database'] = $conexaoOk
+            ? 'ok (MySQL conectado)'
+            : 'falha: ' . $erroDb;
+
+        if (! $conexaoOk) {
+            return [
+                'steps' => $steps,
+                'ok'    => false,
+            ];
+        }
 
         // 2) APP_KEY automática
         $steps['app_key'] = self::ensureAppKey();
@@ -62,25 +70,20 @@ class AutoInstall
 
         return [
             'steps' => $steps,
-            'ok'    => ! isset($steps['erro']) && ! str_starts_with($steps['database'], 'erro'),
+            'ok'    => ! isset($steps['erro']) && $conexaoOk,
         ];
     }
 
-    /** Cria o arquivo SQLite vazio caso não exista. */
-    public static function ensureDatabaseFile(): bool
+    /** Valida se a conexão com o MySQL está acessível. */
+    public static function ensureDatabaseConnection(?string &$erro = null): bool
     {
-        $sqlite = database_path('database.sqlite');
-
-        if (is_file($sqlite)) {
+        try {
+            DB::connection()->getPdo();
             return true;
+        } catch (\Throwable $e) {
+            $erro = $e->getMessage();
+            return false;
         }
-
-        // Garante que a pasta existe e é gravável.
-        if (! is_dir(dirname($sqlite))) {
-            @mkdir(dirname($sqlite), 0775, true);
-        }
-
-        return @touch($sqlite);
     }
 
     /**
@@ -122,14 +125,10 @@ class AutoInstall
         }
     }
 
-    /** As migrations já foram aplicadas? (tabela users + arquivos pendentes) */
+    /** As migrations já foram aplicadas no MySQL? */
     public static function migrationsApplied(): bool
     {
         try {
-            if (! static::ensureDatabaseFile()) {
-                return false;
-            }
-
             if (! Schema::hasTable('users')) {
                 return false;
             }
@@ -164,13 +163,11 @@ class AutoInstall
                 return;
             }
 
-            // INSERT direto com now() do PHP: evita depender de triggers
-            // created_at/updated_at (inexistentes no SQLite).
             $agora = now();
 
             DB::table(self::SEED_FLAG_TABLE)->insert([
                 'message_id' => self::SEED_FLAG_ID,
-                'assunto'    => 'Instalação automática (hospedagem compartilhada)',
+                'assunto'    => 'Instalação automática (MySQL)',
                 'remetente'  => 'system@local',
                 'status'     => 'processado',
                 'detalhes'   => $agora->toDateTimeString(),

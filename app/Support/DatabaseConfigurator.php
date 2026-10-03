@@ -33,11 +33,11 @@ class DatabaseConfigurator
     /** Retorna a definição de conexão vinda das configurações salvas, ou null. */
     public static function fromDb(): ?array
     {
-        $driver = Configuracao::get('db.driver', 'sqlite');
+        $driver = Configuracao::get('db.driver', 'mysql');
 
         if ($driver === 'mysql') {
             $database = Configuracao::comFallback('db.database', 'DB_DATABASE');
-            $host     = Configuracao::comFallback('db.host', 'DB_HOST', 'localhost');
+            $host     = Configuracao::comFallback('db.host', 'DB_HOST', '127.0.0.1');
             $username = Configuracao::comFallback('db.username', 'DB_USERNAME');
 
             // Só ativa MySQL quando há dados suficientes configurados.
@@ -63,16 +63,6 @@ class DatabaseConfigurator
                 'options'   => extension_loaded('pdo_mysql') ? array_filter([
                     \PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
                 ]) : [],
-            ];
-        }
-
-        if ($driver === 'sqlite') {
-            return [
-                'driver' => 'sqlite',
-                'url'    => null,
-                'database' => database_path('database.sqlite'),
-                'prefix' => '',
-                'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             ];
         }
 

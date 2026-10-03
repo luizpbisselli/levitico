@@ -10,9 +10,9 @@
  *     https://seu-dominio.com/install.php
  *
  * O script sobe o framework e delega tudo ao App\Support\AutoInstall:
- *  - cria database/database.sqlite;
+ *  - valida conexão ativa com o banco MySQL;
  *  - gera a APP_KEY no .env automaticamente;
- *  - aplica as migrations pendentes;
+ *  - aplica as migrations pendentes no MySQL;
  *  - roda o seeder inicial (admin + dados de exemplo) uma única vez.
  *
  * Segurança: depois de instalado, renomeie/apague este arquivo OU defina

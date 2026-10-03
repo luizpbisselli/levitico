@@ -31,7 +31,7 @@ graph TD
     Conciliacao -->|Idempotência| Entregas[(Entregas & Vínculos)]
     
     AdminUser[Administrador] -->|/admin| AdminArea[Área Administrativa]
-    AdminArea -->|Audit Log / CRUDs / Relatórios| DB[(MySQL / SQLite)]
+    AdminArea -->|Audit Log / CRUDs / Relatórios| DB[(MySQL Relacional)]
     
     DriverUser[Motorista] -->|/motorista| MobileArea[Área do Motorista Mobile]
     MobileArea -->|Policy: Apenas seus veículos| Entregas
@@ -121,7 +121,8 @@ erDiagram
 ## 🚀 5. Instruções de Instalação e Execução
 
 ### Requisitos
-- PHP 8.2 ou superior (com extensões `pdo_mysql` ou `pdo_sqlite`, `simplexml`, `mbstring`, `openssl`).
+- PHP 8.2 ou superior (com extensões `pdo_mysql`, `simplexml`, `mbstring`, `openssl`).
+- Banco de Dados MySQL 8.0+ ou MariaDB 10.4+.
 - Servidor Web (Apache / Nginx) ou `php artisan serve`.
 
 ### Primeiro Acesso

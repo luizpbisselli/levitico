@@ -2,9 +2,9 @@
 
 ## 1. Diretrizes de Banco de Dados
 
-- **SGBD Padrão**: MySQL / MariaDB (InnoDB, `utf8mb4`). Suporte automático a SQLite para instâncias de testes ou instalação inicial transparente.
-- **Índices Principais**: Índices únicos em chaves fiscais de 44 dígitos (`chave_acesso`), placas de veículos e Message-IDs.
-- **Regra de Migrações**: Apenas migrations aditivas (inclusão de tabelas e colunas com valores default ou nulos) para evitar quebras em produção.
+- **SGBD Exclusivo**: MySQL / MariaDB (Engine InnoDB, Charset `utf8mb4`, Collation `utf8mb4_unicode_ci`).
+- **Integridade Referencial**: Chaves estrangeiras com constraints ativas, índices únicos em chaves de acesso fiscais de 44 dígitos (`chave_acesso`), placas de veículos e Message-IDs.
+- **Regra de Migrações**: Apenas migrations aditivas (inclusão de tabelas e colunas com valores default ou nulos) para garantir evolução contínua sem quebras.
 
 ---
 
