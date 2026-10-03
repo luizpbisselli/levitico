@@ -80,21 +80,25 @@ class ConciliacaoService
      */
     public function extrairChavesNfeDoXml(string $xml): array
     {
-        $xmlTrim = trim($xml);
-        if ($xmlTrim === '') {
+        $xmlSanitizado = (new XmlFiscalService())->sanitizarXml($xml);
+        if ($xmlSanitizado === '') {
             return [];
         }
 
         $dom = new \DOMDocument();
-        if (! @$dom->loadXML($xmlTrim, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
+        if (! @$dom->loadXML($xmlSanitizado, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
             return [];
         }
 
         $xpath = new \DOMXPath($dom);
         $chaves = [];
 
-        // 1. Busca por tags <chNFe> dentro de infDoc / infNFe
-        $nodosChave = $xpath->query("//*[local-name()='infDoc']//*[local-name()='infNFe']//*[local-name()='chNFe'] | //*[local-name()='infNFe']/*[local-name()='chNFe']");
+        // 1. Busca por tags <chNFe> ou <chave> dentro de infDoc / infNFe
+        $nodosChave = $xpath->query(
+            "//*[local-name()='infDoc']//*[local-name()='infNFe']//*[local-name()='chNFe' or local-name()='chave'] " .
+            "| //*[local-name()='infNFe']/*[local-name()='chNFe' or local-name()='chave'] " .
+            "| //*[local-name()='chNFe']"
+        );
         foreach ($nodosChave as $nodo) {
             $chave = preg_replace('/\D/', '', $nodo->nodeValue ?? '');
             if (preg_match('/^\d{44}$/', $chave)) {

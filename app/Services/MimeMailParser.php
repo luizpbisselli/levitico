@@ -3,153 +3,210 @@
 namespace App\Services;
 
 /**
- * Extrai anexos XML (inclusive dentro de .zip) do conteúdo bruto de uma
- * mensagem MIME. Funciona sem a extensão php-imap, usando apenas
- * decode_mime_header implícito + zlib — adequado para hospedagem compartilhada.
+ * Extrai anexos e blocos XML (inclusive dentro de .zip, texto puro ou HTML) do conteúdo bruto MIME de e-mails.
+ * Suporta recursão de multipartes, decodificação base64, quoted-printable e conversão de entidades HTML.
  */
 class MimeMailParser
 {
     /**
-     * @return string[] conteúdos XML decodificados
+     * @return string[] conteúdos XML decodificados e prontos para processamento
      */
     public static function extrairXmls(string $rawMime): array
     {
+        $partes = self::extrairTodasAsPartes($rawMime);
         $xmls = [];
 
-        foreach (self::corposAnexos($rawMime) as $nome => $corpo) {
-            $nome = strtolower($nome);
-            $dados = self::decodificarCorpo($corpo);
+        foreach ($partes as $parte) {
+            $tipo = strtolower($parte['content_type'] ?? '');
+            $disp = strtolower($parte['disposition'] ?? '');
+            $nome = strtolower($parte['filename'] ?? '');
+            $dados = $parte['corpo'];
 
-            if (str_ends_with($nome, '.xml')) {
-                $xmls[] = $dados;
-            } elseif (str_ends_with($nome, '.zip')) {
-                $xmls = array_merge($xmls, self::xmlsDoZip($dados));
-            }
-        }
-
-        // Fallback: alguns gateways enviam o XML inline no corpo text/xml
-        if (! $xmls && preg_match('/<\?xml[^>]*\?>\s*<(nfeProc|ctesProc|CFe|procCancInfPrest|envEvento)/i', $rawMime, $m)) {
-            $ini = strpos($rawMime, $m[0]);
-            $xmls[] = substr($rawMime, $ini);
-        }
-
-        return $xmls;
-    }
-
-    /**
-     * Varre o MIME procurando partes com Content-Disposition attachment
-     * ou Content-Type application/xml|zip|octet-stream.
-     *
-     * @return array<string,string> nome => corpo bruto (ainda codificado)
-     */
-    protected static function corposAnexos(string $raw): array
-    {
-        $anexos = [];
-
-        // Boundary raiz
-        if (! preg_match('/boundary="?([^"\r\n;]+)"?/i', $raw, $mb)) {
-            return $anexos;
-        }
-        $boundary = $mb[1];
-
-        // Divide em partes de nível 1
-        $blocos = preg_split('/--' . preg_quote($boundary, '/') . '(?:\r?\n|$)/', $raw);
-
-        foreach ((array) $blocos as $bloco) {
-            if (trim($bloco) === '' || trim($bloco) === '--') {
+            // 1. Arquivo .zip em anexo
+            if (str_ends_with($nome, '.zip') || str_contains($tipo, 'zip')) {
+                $xmlsDoZip = self::xmlsDoZip($dados);
+                if (! empty($xmlDoZip)) {
+                    $xmls = array_merge($xmls, $xmlDoZip);
+                }
                 continue;
             }
 
-            [$headersRaw, $corpo] = array_pad(preg_split('/\r?\n\r?\n/', $bloco, 2), 2, '');
-
-            // Content-Transfer-Encoding da parte (base64 / quoted-printable / 8bit)
-            $encoding = '';
-            if (preg_match('/content-transfer-encoding:\s*([^\s;\r\n]+)/i', (string) $headersRaw, $me)) {
-                $encoding = strtolower($me[1]);
-            }
-
-            $nome = self::parametroHeader((string) $headersRaw, 'filename')
-                 ?? self::parametroHeader((string) $headersRaw, 'name');
-
-            $ehAnexo = stripos((string) $headersRaw, 'content-disposition') !== false
-                && stripos((string) $headersRaw, 'attachment') !== false;
-            $ehTipoXml = preg_match('/content-type:\s*(application\/(xml|zip|octet-stream)|text\/xml)/i', (string) $headersRaw) === 1;
-
-            if (($ehAnexo || $ehTipoXml) && $nome) {
-                $dados = self::decodificarCorpo((string) $corpo, $encoding);
-                $ext = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
-                if ($ext === 'xml' || $ext === 'zip' || $ehTipoXml) {
-                    $anexos[$nome] = $dados;
+            // 2. Arquivo .xml em anexo formal
+            if (str_ends_with($nome, '.xml') || str_contains($tipo, 'xml')) {
+                $bloco = self::extrairBlocoFiscal($dados);
+                if ($bloco !== null) {
+                    $xmls[] = $bloco;
+                    continue;
                 }
             }
 
-            // Parte multipart interna (ex.: mixed dentro de related): recursão leve
-            if (preg_match('/multipart\/\w+.*boundary="?([^"\r\n;]+)"?/is', (string) $headersRaw, $mi)) {
-                $sub = self::dividirPorBoundary((string) $corpo, $mi[1]);
-                foreach ($sub as $s) {
-                    [$h2, $c2] = array_pad(preg_split('/\r?\n\r?\n/', $s, 2), 2, '');
-                    $enc2 = '';
-                    if (preg_match('/content-transfer-encoding:\s*([^\s;\r\n]+)/i', (string) $h2, $me2)) {
-                        $enc2 = strtolower($me2[1]);
-                    }
-                    $n2 = self::parametroHeader((string) $h2, 'filename') ?? self::parametroHeader((string) $h2, 'name');
-                    $att2 = stripos((string) $h2, 'attachment') !== false;
-                    $xml2 = preg_match('/content-type:\s*(application\/(xml|zip|octet-stream)|text\/xml)/i', (string) $h2) === 1;
-                    if ($n2 && ($att2 || $xml2)) {
-                        $anexos[$n2] = self::decodificarCorpo((string) $c2, $enc2);
+            // 3. Qualquer corpo de texto/HTML ou anexo que contenha XML fiscal (colado ou inline)
+            $blocosTexto = self::extrairBlocosFiscaisDeTexto($dados);
+            foreach ($blocosTexto as $bloco) {
+                $xmls[] = $bloco;
+            }
+        }
+
+        // Se ainda não encontrou nada, faz varredura completa na mensagem bruta
+        if (empty($xmls)) {
+            $xmls = self::extrairBlocosFiscaisDeTexto($rawMime);
+        }
+
+        return array_values(array_unique(array_filter($xmls)));
+    }
+
+    /**
+     * Divide recursivamente o MIME em todas as suas partes e decodifica cada uma.
+     *
+     * @return array<int, array{filename: string, content_type: string, disposition: string, corpo: string}>
+     */
+    public static function extrairTodasAsPartes(string $raw): array
+    {
+        $partes = [];
+        $headersGlobais = '';
+        $corpoGlobal = $raw;
+
+        if (preg_match('/^(.*?)\r?\n\r?\n(.*)$/s', $raw, $m)) {
+            $headersGlobais = $m[1];
+            $corpoGlobal = $m[2];
+        }
+
+        // Procura boundary nos headers
+        $boundary = self::extrairBoundary($headersGlobais) ?: self::extrairBoundary($raw);
+
+        if (! $boundary) {
+            // Mensagem simples (sem multipart)
+            $enc = self::extrairHeader($headersGlobais, 'content-transfer-encoding');
+            $tipo = self::extrairHeader($headersGlobais, 'content-type');
+            $disp = self::extrairHeader($headersGlobais, 'content-disposition');
+            $nome = self::parametroHeader($headersGlobais, 'filename') ?? self::parametroHeader($headersGlobais, 'name') ?? '';
+
+            $partes[] = [
+                'filename'     => $nome,
+                'content_type' => $tipo,
+                'disposition'  => $disp,
+                'corpo'        => self::decodificarCorpo($corpoGlobal, $enc),
+            ];
+
+            return $partes;
+        }
+
+        // Divide pelas boundaries
+        $blocos = preg_split('/--' . preg_quote($boundary, '/') . '(?:\r?\n|$|--)/', $raw);
+
+        foreach ((array) $blocos as $bloco) {
+            $blocoTrim = trim($bloco);
+            if ($blocoTrim === '' || $blocoTrim === '--') {
+                continue;
+            }
+
+            [$hRaw, $cRaw] = array_pad(preg_split('/\r?\n\r?\n/', $bloco, 2), 2, '');
+
+            $subBoundary = self::extrairBoundary($hRaw);
+            if ($subBoundary && $subBoundary !== $boundary) {
+                // Recursão para multipart interno
+                $subPartes = self::extrairTodasAsPartes($cRaw);
+                $partes = array_merge($partes, $subPartes);
+                continue;
+            }
+
+            $enc = self::extrairHeader($hRaw, 'content-transfer-encoding');
+            $tipo = self::extrairHeader($hRaw, 'content-type');
+            $disp = self::extrairHeader($hRaw, 'content-disposition');
+            $nome = self::parametroHeader($hRaw, 'filename') ?? self::parametroHeader($hRaw, 'name') ?? '';
+
+            $partes[] = [
+                'filename'     => $nome,
+                'content_type' => $tipo,
+                'disposition'  => $disp,
+                'corpo'        => self::decodificarCorpo((string) $cRaw, $enc),
+            ];
+        }
+
+        return $partes;
+    }
+
+    /**
+     * Localiza e isola blocos fiscais válidos dentro de qualquer string de texto ou HTML.
+     *
+     * @return string[]
+     */
+    public static function extrairBlocosFiscaisDeTexto(string $texto): array
+    {
+        $resultados = [];
+        $candidatos = [$texto];
+
+        // Se tem entidades HTML (&lt; / &gt;), gera também a versão decodificada
+        if (str_contains($texto, '&lt;') && str_contains($texto, '&gt;')) {
+            $candidatos[] = html_entity_decode($texto, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        }
+
+        // Se for HTML, remove tags HTML externas para isolar XMLs colados em parágrafos
+        if (str_contains($texto, '<html') || str_contains($texto, '<div') || str_contains($texto, '<body')) {
+            $limpoHtml = strip_tags(html_entity_decode($texto, ENT_QUOTES | ENT_XML1, 'UTF-8'));
+            $candidatos[] = $limpoHtml;
+        }
+
+        $tagsRaiz = 'cteProc|CTe|nfeProc|NFe|procEventoNFe|procEventoCTe|eventoNFe|eventoCTe|procInutNFe|procInutCTe|procinutl|inutNFe|inutCTe|mdfeProc|MDFe|CompNfse|InfNfse';
+        $pattern = '/((?:<\?xml[^>]*\?>\s*)?(?:<!--.*?-->\s*)*<([a-zA-Z0-9_\-]+:)?(' . $tagsRaiz . ')[^>]*>.*?<\/(?:\2\3|\3)>)/is';
+
+        foreach ($candidatos as $cand) {
+            if (preg_match_all($pattern, $cand, $m)) {
+                foreach ($m[0] as $bloco) {
+                    $blocoLimpo = trim($bloco);
+                    if ($blocoLimpo !== '') {
+                        $resultados[] = $blocoLimpo;
                     }
                 }
             }
         }
 
-        return $anexos;
+        return array_values(array_unique($resultados));
     }
 
-    /** @return string[] */
-    protected static function dividirPorBoundary(string $corpo, string $boundary): array
+    /**
+     * Tenta isolar um bloco fiscal único a partir de uma string.
+     */
+    public static function extrairBlocoFiscal(string $dados): ?string
     {
-        return preg_split('/--' . preg_quote($boundary, '/') . '(?:\r?\n|$)/', $corpo) ?: [];
-    }
-
-    protected static function parametroHeader(string $headers, string $param): ?string
-    {
-        if (preg_match('/' . preg_quote($param, '/') . '\s*=\s*"([^"]+)"/i', $headers, $m)) {
-            return $m[1];
-        }
-        if (preg_match('/' . preg_quote($param, '/') . '\s*=\s*([^\s;"\'\r\n]+)/i', $headers, $m)) {
-            return $m[1];
-        }
-
-        return null;
+        $blocos = self::extrairBlocosFiscaisDeTexto($dados);
+        return $blocos[0] ?? (self::pareceXml($dados) ? trim($dados) : null);
     }
 
     /** Decodifica base64/quoted-printable conforme Content-Transfer-Encoding. */
-    protected static function decodificarCorpo(string $corpo, string $encoding = ''): string
+    public static function decodificarCorpo(string $corpo, string $encoding = ''): string
     {
-        $corpo = trim($corpo);
+        $enc = strtolower(trim($encoding));
 
-        // Detecta pelo próprio conteúdo quando o header não acompanha o bloco
-        if ($encoding === '') {
-            $limpo = preg_replace('/\s+/', '', $corpo) ?? '';
-            if (preg_match('#^[A-Za-z0-9+/=]+$#', substr($limpo, 0, 512))) {
-                $dec = base64_decode($limpo, true);
-                if ($dec !== false) {
-                    return $dec;
-                }
+        if ($enc === 'base64') {
+            $dec = base64_decode(preg_replace('/\s+/', '', $corpo), true);
+            return $dec !== false ? $dec : $corpo;
+        }
+
+        if ($enc === 'quoted-printable') {
+            return quoted_printable_decode($corpo);
+        }
+
+        // Quando o encoding não foi explicitado, testa se o corpo é base64 puro
+        $limpo = preg_replace('/\s+/', '', $corpo) ?? '';
+        if (strlen($limpo) > 60 && preg_match('#^[A-Za-z0-9+/=]+$#', substr($limpo, 0, 512))) {
+            $dec = base64_decode($limpo, true);
+            if ($dec !== false && (str_contains($dec, '<') || str_contains($dec, 'PK') || str_contains($dec, '&lt;'))) {
+                return $dec;
             }
         }
 
-        return match ($encoding) {
-            'base64'            => (string) base64_decode(preg_replace('/\s+/', '', $corpo)),
-            'quoted-printable'  => quoted_printable_decode($corpo),
-            default             => $corpo,
-        };
+        // Verifica se há resquícios de quoted-printable (ex: =3D, =20, =C3=A3)
+        if (str_contains($corpo, '=3D') || str_contains($corpo, "=\r\n") || str_contains($corpo, "=\n")) {
+            return quoted_printable_decode($corpo);
+        }
+
+        return $corpo;
     }
 
-    /** Lê entradas .xml de um zip em memória (sem ZipArchive/temp files). */
+    /** Lê entradas .xml de um zip em memória. */
     protected static function xmlsDoZip(string $dados): array
     {
-        // Método principal: stream via data:// (usa ZipArchive, presente em ~99% das hospedagens)
         if (class_exists(\ZipArchive::class)) {
             $xmls = [];
             $zip = new \ZipArchive();
@@ -169,7 +226,7 @@ class MimeMailParser
             }
         }
 
-        // Fallback manual: parser de local headers (deflate/stored)
+        // Fallback manual para zip deflate
         $xmls = [];
         $offset = 0;
         $tamanho = strlen($dados);
@@ -186,7 +243,6 @@ class MimeMailParser
             $tamCompactado = $info['compactado'];
             $metodo = $info['metodo'];
 
-            // Data descriptor (flag bit 3): tamanho vem depois — tratado abaixo
             if (($info['flags'] & 0x08) && $tamCompactado === 0) {
                 $busca = strpos($dados, "PK", $pos + 30 + $nomeLen + $extraLen);
                 $tamCompactado = $busca !== false ? $busca - ($pos + 30 + $nomeLen + $extraLen) : 0;
@@ -216,5 +272,39 @@ class MimeMailParser
         }
 
         return $xmls;
+    }
+
+    protected static function extrairBoundary(string $headers): ?string
+    {
+        if (preg_match('/boundary="?([^"\r\n;]+)"?/i', $headers, $m)) {
+            return $m[1];
+        }
+        return null;
+    }
+
+    protected static function extrairHeader(string $headers, string $headerName): string
+    {
+        if (preg_match('/' . preg_quote($headerName, '/') . ':\s*([^\r\n;]+)/i', $headers, $m)) {
+            return trim($m[1]);
+        }
+        return '';
+    }
+
+    protected static function parametroHeader(string $headers, string $param): ?string
+    {
+        if (preg_match('/' . preg_quote($param, '/') . '\s*=\s*"([^"]+)"/i', $headers, $m)) {
+            return $m[1];
+        }
+        if (preg_match('/' . preg_quote($param, '/') . '\s*=\s*([^\s;"\'\r\n]+)/i', $headers, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    protected static function pareceXml(string $dados): bool
+    {
+        $inicio = ltrim($dados);
+        return str_starts_with($inicio, '<?xml') || str_starts_with($inicio, '<') || str_starts_with($inicio, '&lt;');
     }
 }

@@ -57,7 +57,9 @@ Route::middleware(['auth', 'profile:admin', 'audit'])->prefix('admin')->name('ad
     Route::resource('clientes', ClienteController::class)->except(['show']);
 
     Route::get('documentos/ctes', [DocumentoController::class, 'ctes'])->name('documentos.ctes');
+    Route::get('documentos/ctes/{cte}', [DocumentoController::class, 'dacte'])->name('documentos.dacte');
     Route::get('documentos/nfes', [DocumentoController::class, 'nfes'])->name('documentos.nfes');
+    Route::get('documentos/nfes/{nfe}', [DocumentoController::class, 'danfe'])->name('documentos.danfe');
     Route::get('documentos/{tipo}/{id}/xml', [DocumentoController::class, 'xml'])->name('documentos.xml');
     Route::post('documentos/ctes/{cte}/atribuir-veiculo', [DocumentoController::class, 'atribuirVeiculo'])->name('documentos.atribuirVeiculo');
 

@@ -37,6 +37,20 @@ class DocumentoController extends Controller
         return view('admin.documentos.nfes', ['nfes' => $q->latest('id')->paginate(20)->withQueryString()]);
     }
 
+    /** Visualização amigável estilo DACTE do CT-e. */
+    public function dacte(Cte $cte, \App\Services\DanfeVisualService $danfeService)
+    {
+        $dacte = $danfeService->extrairDadosDacte($cte);
+        return view('admin.documentos.dacte', compact('cte', 'dacte'));
+    }
+
+    /** Visualização amigável estilo DANFE da NF-e. */
+    public function danfe(Nfe $nfe, \App\Services\DanfeVisualService $danfeService)
+    {
+        $danfe = $danfeService->extrairDadosDanfe($nfe);
+        return view('admin.documentos.danfe', compact('nfe', 'danfe'));
+    }
+
     /** Visualização do XML original (guarda fiscal). */
     public function xml(string $tipo, int $id): Response
     {

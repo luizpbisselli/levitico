@@ -33,11 +33,16 @@
         <div class="card-body" style="padding:0.75rem 1.25rem;">
             @forelse($errosEmail as $log)
                 <div style="border-bottom:1px solid var(--border); padding:0.75rem 0;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:600; font-size:0.875rem;">{{ $log->assunto ?: 'Sem assunto' }}</span>
-                        <span style="font-size:0.75rem; color:var(--text-muted);">{{ $log->created_at->format('d/m H:i') }}</span>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                        <div>
+                            <span style="font-weight:600; font-size:0.875rem;">{{ $log->assunto ?: 'Sem assunto' }}</span>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">{{ $log->remetente ?: '—' }}</div>
+                        </div>
+                        <span style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap; font-variant-numeric:tabular-nums;">
+                            {{ $log->lido_em ? $log->lido_em->format('d/m/Y H:i:s') : ($log->created_at ? $log->created_at->format('d/m/Y H:i:s') : '—') }}
+                        </span>
                     </div>
-                    <div style="font-size:0.8rem; color:var(--danger); margin-top:0.25rem;">{{ $log->detalhes }}</div>
+                    <div style="font-size:0.8rem; color:var(--danger); margin-top:0.25rem; word-break:break-word;">{{ $log->detalhes }}</div>
                 </div>
             @empty
                 <p style="font-size:0.875rem; color:var(--text-muted); padding:1rem 0; margin:0; text-align:center;">Nenhum erro de leitura de e-mails registrado.</p>

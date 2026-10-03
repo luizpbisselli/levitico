@@ -615,8 +615,9 @@ table{border-collapse:collapse;border-color:inherit;text-indent:0}
         const INTERVALO_SEGUNDOS = 60;
         let segundosRestantes = INTERVALO_SEGUNDOS;
         let emExecucao = false;
+        let ultimoStatus = 'ok'; // 'ok' | 'erro' | 'offline' | 'nao_configurado'
+        let ultimoErroMsg = '';
 
-        const countEl = document.getElementById('syncTimerCount');
         const textEl = document.getElementById('syncText');
         const pulseEl = document.getElementById('syncPulse');
         const btnManual = document.getElementById('btnManualSync');
@@ -633,12 +634,42 @@ table{border-collapse:collapse;border-color:inherit;text-indent:0}
             setTimeout(() => { toastEl.classList.add('hidden'); }, 6000);
         }
 
+        function renderizarTimer() {
+            if (!textEl) return;
+
+            if (emExecucao) {
+                if (pulseEl) pulseEl.className = 'sync-pulse busy';
+                textEl.innerHTML = '<span style="color:#fbbf24;font-size:0.75rem;font-weight:600">Lendo…</span>';
+                return;
+            }
+
+            if (ultimoStatus === 'nao_configurado') {
+                if (pulseEl) pulseEl.className = 'sync-pulse off';
+                textEl.innerHTML = '<span style="color:#64748b;font-size:0.75rem" title="Configure a caixa de e-mail em Configurações">Não config.</span>';
+                return;
+            }
+
+            if (ultimoStatus === 'erro') {
+                if (pulseEl) pulseEl.className = 'sync-pulse err';
+                textEl.innerHTML = '<span style="color:#f87171;font-size:0.75rem;font-weight:600" title="' + (ultimoErroMsg || 'Falha na conexão IMAP/E-mail') + '">Falha (' + segundosRestantes + 's)</span>';
+                return;
+            }
+
+            if (ultimoStatus === 'offline') {
+                if (pulseEl) pulseEl.className = 'sync-pulse off';
+                textEl.innerHTML = '<span style="color:#94a3b8;font-size:0.75rem" title="Sem conexão com o servidor">Offline (' + segundosRestantes + 's)</span>';
+                return;
+            }
+
+            // Status OK
+            if (pulseEl) pulseEl.className = 'sync-pulse ok';
+            textEl.innerHTML = '<b id="syncTimerCount">' + segundosRestantes + 's</b>';
+        }
+
         async function sincronizarEmails() {
             if (emExecucao) return;
             emExecucao = true;
-
-            if (pulseEl) pulseEl.className = 'sync-pulse busy';
-            if (textEl) textEl.innerHTML = '<span style="color:#fbbf24">Lendo…</span>';
+            renderizarTimer();
 
             try {
                 const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -651,42 +682,49 @@ table{border-collapse:collapse;border-color:inherit;text-indent:0}
                     }
                 });
 
+                if (!resp.ok) {
+                    throw new Error('HTTP ' + resp.status);
+                }
+
                 const data = await resp.json();
 
                 if (data.motivo === 'nao_configurado') {
-                    if (pulseEl) pulseEl.className = 'sync-pulse off';
-                    if (textEl) textEl.innerHTML = '<span style="color:#64748b">Não config.</span>';
+                    ultimoStatus = 'nao_configurado';
                 } else if (data.ok) {
-                    if (pulseEl) pulseEl.className = 'sync-pulse ok';
-                    if (textEl) textEl.innerHTML = '<b id="syncTimerCount">' + INTERVALO_SEGUNDOS + 's</b>';
+                    ultimoStatus = 'ok';
+                    ultimoErroMsg = '';
 
                     if (data.processados > 0) {
                         exibirToast('🎉 ' + data.processados + ' novo(s) documento(s)', 'Foram baixados e conciliados ' + data.processados + ' XML(s) às ' + data.horario + '.');
                     }
                 } else {
-                    if (pulseEl) pulseEl.className = 'sync-pulse err';
-                    if (textEl) textEl.innerHTML = '<span style="color:#f87171" title="' + (data.erros?.join('; ') || 'Falha') + '">Falha IMAP</span>';
+                    ultimoStatus = 'erro';
+                    ultimoErroMsg = data.erros?.join('; ') || 'Erro ao sincronizar caixa de e-mail';
                 }
             } catch (err) {
-                if (pulseEl) pulseEl.className = 'sync-pulse off';
-                if (textEl) textEl.innerHTML = '<span style="color:#64748b">Offline</span>';
+                ultimoStatus = 'offline';
+                ultimoErroMsg = err.message || 'Falha de rede';
             } finally {
                 emExecucao = false;
                 segundosRestantes = INTERVALO_SEGUNDOS;
+                renderizarTimer();
             }
         }
 
         setInterval(() => {
             if (emExecucao) return;
             segundosRestantes--;
-            const currentCountEl = document.getElementById('syncTimerCount');
-            if (currentCountEl) currentCountEl.textContent = segundosRestantes + 's';
-            if (segundosRestantes <= 0) sincronizarEmails();
+            if (segundosRestantes <= 0) {
+                sincronizarEmails();
+            } else {
+                renderizarTimer();
+            }
         }, 1000);
 
         if (btnManual) {
             btnManual.addEventListener('click', (e) => {
                 e.preventDefault();
+                segundosRestantes = 0;
                 sincronizarEmails();
             });
         }

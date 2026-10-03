@@ -48,9 +48,14 @@
             <h2 style="font-weight:600;margin-bottom:.75rem;font-size:1rem">📧 Erros de ingestão por e-mail</h2>
             @forelse($pendenciasEmail as $log)
                 <div style="border-bottom:1px solid var(--c-border);padding:.625rem 0;font-size:.875rem">
-                    <div style="font-weight:600">{{ $log->assunto }}</div>
-                    <div style="font-size:.8125rem;color:var(--c-text-muted)">{{ $log->remetente }}</div>
-                    <div style="color:var(--c-danger);font-size:.8125rem;margin-top:.25rem">{{ $log->detalhes }}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">
+                        <div style="font-weight:600">{{ $log->assunto ?: 'Sem assunto' }}</div>
+                        <span style="font-size:.75rem;color:var(--c-text-muted);white-space:nowrap;font-variant-numeric:tabular-nums">
+                            {{ $log->lido_em ? $log->lido_em->format('d/m/Y H:i:s') : ($log->created_at ? $log->created_at->format('d/m/Y H:i:s') : '—') }}
+                        </span>
+                    </div>
+                    <div style="font-size:.8125rem;color:var(--c-text-muted)">{{ $log->remetente ?: '—' }}</div>
+                    <div style="color:var(--c-danger);font-size:.8125rem;margin-top:.25rem;word-break:break-word">{{ $log->detalhes }}</div>
                 </div>
             @empty
                 <p style="font-size:.875rem;color:var(--c-text-muted)">Nenhum erro registrado.</p>

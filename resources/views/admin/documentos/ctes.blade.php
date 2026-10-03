@@ -13,16 +13,20 @@
 <table class="resp-table">
     <thead><tr>
         <th>Nº</th><th>Emissão</th><th>Destinatário</th><th>Cidade/UF</th>
-        <th>Frete (R$)</th><th>Placa XML</th><th>NF-e vinc.</th><th>Entrega</th><th>XML</th>
+        <th>Frete (R$)</th><th>Placa XML</th><th>NF-e vinc.</th><th>Entrega</th><th>Visualizar</th>
     </tr></thead>
     <tbody>
     @foreach($ctes as $cte)
         <tr>
-            <td style="font-weight:600">{{ $cte->numero }}</td>
+            <td>
+                <a href="{{ route('admin.documentos.dacte', $cte) }}" style="font-weight:700; color:var(--c-primary); text-decoration:none;" title="Abrir DACTE">
+                    {{ $cte->numero }}
+                </a>
+            </td>
             <td>{{ $cte->emissao?->format('d/m/Y') }}</td>
             <td>{{ $cte->destinatario_nome }}</td>
             <td>{{ $cte->destinatario_cidade }}/{{ $cte->destinatario_uf }}</td>
-            <td>{{ number_format((float) $cte->valor_frete, 2, ',', '.') }}</td>
+            <td style="font-weight:600;">R$ {{ number_format((float) $cte->valor_frete, 2, ',', '.') }}</td>
             <td class="font-mono">{{ $cte->placa_informada ?? '—' }}</td>
             <td>{{ $cte->nfes->count() }}/{{ count(app(\App\Services\ConciliacaoService::class)->extrairChavesNfeDoXml((string) $cte->xml_original)) }}</td>
             <td>
@@ -46,7 +50,16 @@
                     </form>
                 @endif
             </td>
-            <td><a href="{{ route('admin.documentos.xml', ['tipo' => 'cte', 'id' => $cte->id]) }}" target="_blank" style="color:var(--c-primary);font-weight:500;font-size:.8125rem">abrir</a></td>
+            <td>
+                <div style="display:flex; gap:0.35rem; align-items:center;">
+                    <a href="{{ route('admin.documentos.dacte', $cte) }}" class="btn btn-sm" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:0.75rem; padding:0.25rem 0.5rem; text-decoration:none;" title="Ver DACTE">
+                        👁️ DACTE
+                    </a>
+                    <a href="{{ route('admin.documentos.xml', ['tipo' => 'cte', 'id' => $cte->id]) }}" target="_blank" class="btn btn-sm" style="background:#f8fafc; color:#475569; border:1px solid #cbd5e1; font-size:0.75rem; padding:0.25rem 0.5rem; text-decoration:none;" title="Ver XML">
+                        XML
+                    </a>
+                </div>
+            </td>
         </tr>
     @endforeach
     </tbody>

@@ -9,10 +9,63 @@ use DOMXPath;
 
 /**
  * Identifica, valida e processa arquivos XML fiscais (NF-e, CT-e, Eventos/Cancelamento).
- * Suporta XMLs completos (proc), standalone (apenas CTe/NFe) e qualquer variação de namespace.
+ * Suporta XMLs completos (proc), standalone (apenas CTe/NFe), qualquer variação de namespace
+ * e sanitização contra resíduos MIME/assinaturas/BOM.
  */
 class XmlFiscalService
 {
+    /**
+     * Sanitiza o conteúdo XML, removendo BOM UTF-8, entidades HTML escapadas
+     * e qualquer lixo/assinatura ou MIME boundary existente antes ou depois da tag raiz.
+     */
+    public function sanitizarXml(string $xml): string
+    {
+        $xml = trim($xml);
+        if ($xml === '') {
+            return '';
+        }
+
+        // Remove BOM UTF-8 se presente
+        $xml = preg_replace('/^\xEF\xBB\xBF/', '', $xml);
+
+        // Se o XML veio com entidades codificadas (ex: copiado de corpo HTML &lt;cte:CTe...)
+        if (str_contains($xml, '&lt;') && str_contains($xml, '&gt;')) {
+            $decodificado = html_entity_decode($xml, ENT_QUOTES | ENT_XML1, 'UTF-8');
+            if (str_contains($decodificado, '<CTe') || str_contains($decodificado, '<cte:') || str_contains($decodificado, '<NFe') || str_contains($decodificado, '<nfeProc') || str_contains($decodificado, '<cteProc')) {
+                $xml = $decodificado;
+            }
+        }
+
+        $tagsRaiz = 'cteProc|CTe|nfeProc|NFe|procEventoNFe|procEventoCTe|eventoNFe|eventoCTe|procInutNFe|procInutCTe|procinutl|inutNFe|inutCTe|mdfeProc|MDFe|CompNfse|InfNfse|retConsStatServ|retConsSitCTe|retConsSitNFe';
+
+        // Localiza onde começa o bloco fiscal (ou <?xml ou <!-- ou <tagRaiz)
+        $patternInicio = '/((?:<\?xml[^>]*\?>\s*)?(?:<!--.*?-->\s*)*<([a-zA-Z0-9_\-]+:)?(' . $tagsRaiz . ')[^>]*>)/is';
+        if (preg_match($patternInicio, $xml, $m, PREG_OFFSET_CAPTURE)) {
+            $posInicio = $m[0][1];
+            $prefixo = $m[2][0] ?? '';
+            $nomeRaiz = $m[3][0];
+
+            $xml = substr($xml, $posInicio);
+
+            // Procura o fechamento correspondente </prefixo:nomeRaiz> ou </nomeRaiz>
+            $fechamento1 = "</{$prefixo}{$nomeRaiz}>";
+            $fechamento2 = "</{$nomeRaiz}>";
+
+            $posFim = strripos($xml, $fechamento1);
+            $tamFechamento = strlen($fechamento1);
+            if ($posFim === false) {
+                $posFim = strripos($xml, $fechamento2);
+                $tamFechamento = strlen($fechamento2);
+            }
+
+            if ($posFim !== false) {
+                $xml = substr($xml, 0, $posFim + $tamFechamento);
+            }
+        }
+
+        return trim($xml);
+    }
+
     /**
      * Valida e diagnostica um arquivo XML, informando com precisão
      * se é bem-formado, seu tipo fiscal e eventuais inconsistências.
@@ -31,8 +84,8 @@ class XmlFiscalService
      */
     public function validarXml(string $xml): array
     {
-        $xmlTrim = trim($xml);
-        if ($xmlTrim === '') {
+        $xmlSanitizado = $this->sanitizarXml($xml);
+        if ($xmlSanitizado === '') {
             return [
                 'valido'         => false,
                 'sintaxe_valida' => false,
@@ -48,7 +101,7 @@ class XmlFiscalService
 
         libxml_use_internal_errors(true);
         $dom = new DOMDocument();
-        $carregou = @$dom->loadXML($xmlTrim, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+        $carregou = @$dom->loadXML($xmlSanitizado, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
         $errosLibxml = libxml_get_errors();
         libxml_clear_errors();
 
@@ -164,8 +217,9 @@ class XmlFiscalService
      */
     public function processarNfe(string $xml): array
     {
+        $xmlSanitizado = $this->sanitizarXml($xml);
         $dom = new DOMDocument();
-        if (! @$dom->loadXML($xml, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
+        if (! @$dom->loadXML($xmlSanitizado, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
             return ['ok' => false, 'erro' => 'XML de NF-e com sintaxe inválida ou corrompido.'];
         }
 
@@ -232,7 +286,7 @@ class XmlFiscalService
             'valor_total'            => $vTot,
             'volumes'                => $qVol ?: null,
             'peso_bruto'             => $pesoB ?: null,
-            'xml_original'           => $xml,
+            'xml_original'           => $xmlSanitizado,
         ];
 
         $nfe = Nfe::updateOrCreate(['chave_acesso' => $chave], $dados);
@@ -245,8 +299,9 @@ class XmlFiscalService
      */
     public function processarCte(string $xml): array
     {
+        $xmlSanitizado = $this->sanitizarXml($xml);
         $dom = new DOMDocument();
-        if (! @$dom->loadXML($xml, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
+        if (! @$dom->loadXML($xmlSanitizado, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
             return ['ok' => false, 'erro' => 'XML de CT-e com sintaxe inválida ou corrompido.'];
         }
 
@@ -321,7 +376,7 @@ class XmlFiscalService
             'destinatario_uf'     => $destUf ?: '',
             'valor_frete'         => $vFrete,
             'placa_informada'     => $placa,
-            'xml_original'        => $xml,
+            'xml_original'        => $xmlSanitizado,
         ];
 
         $cte = Cte::updateOrCreate(['chave_acesso' => $chave], $dados);
@@ -334,8 +389,9 @@ class XmlFiscalService
      */
     public function processarEvento(string $xml): array
     {
+        $xmlSanitizado = $this->sanitizarXml($xml);
         $dom = new DOMDocument();
-        if (@$dom->loadXML($xml, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
+        if (@$dom->loadXML($xmlSanitizado, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
             $xpath = new DOMXPath($dom);
             $tpEvento = $this->xpathValue($xpath, "//*[local-name()='tpEvento']");
             $descEvento = $this->xpathValue($xpath, "//*[local-name()='descEvento']");
@@ -346,7 +402,7 @@ class XmlFiscalService
             // 110111 = Cancelamento Homologado
             $ehCancelamento = $tpEvento === '110111'
                 || str_contains(strtolower($descEvento ?: ''), 'cancelamento')
-                || str_contains(strtolower($xml), 'cancelamento');
+                || str_contains(strtolower($xmlSanitizado), 'cancelamento');
 
             if ($ehCancelamento && $chDoc && preg_match('/^\d{44}$/', $chDoc)) {
                 Nfe::where('chave_acesso', $chDoc)->update(['cancelada' => true]);
@@ -355,8 +411,8 @@ class XmlFiscalService
             }
         }
 
-        if (preg_match('/descRef\s*>\s*110111/i', $xml) || str_contains($xml, 'Cancelamento')) {
-            if (preg_match('/<(?:cChave|chNFe|chCTe)>(\d{44})<\/(?:cChave|chNFe|chCTe)>|Chave[=:]\s*"?(\d{44})/i', $xml, $m)) {
+        if (preg_match('/descRef\s*>\s*110111/i', $xmlSanitizado) || str_contains($xmlSanitizado, 'Cancelamento')) {
+            if (preg_match('/<(?:cChave|chNFe|chCTe)>(\d{44})<\/(?:cChave|chNFe|chCTe)>|Chave[=:]\s*"?(\d{44})/i', $xmlSanitizado, $m)) {
                 $chave = $m[1] !== '' ? $m[1] : ($m[2] ?? '');
                 if ($chave) {
                     Nfe::where('chave_acesso', $chave)->update(['cancelada' => true]);

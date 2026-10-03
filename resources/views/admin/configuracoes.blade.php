@@ -151,12 +151,17 @@
                             <b style="font-size:0.875rem;">{{ $log->assunto ?: 'Sem assunto' }}</b>
                             <span style="font-size:0.75rem; color:var(--text-muted);">({{ $log->remetente ?: '—' }})</span>
                         </div>
-                        <span class="badge {{ $log->status === 'erro' ? 'badge-danger' : ($log->status === 'duplicado' ? 'badge-warning' : 'badge-success') }}">
-                            {{ $log->status }}
-                        </span>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-variant-numeric:tabular-nums;">
+                                {{ $log->lido_em ? $log->lido_em->format('d/m/Y H:i:s') : ($log->created_at ? $log->created_at->format('d/m/Y H:i:s') : '—') }}
+                            </span>
+                            <span class="badge {{ $log->status === 'erro' ? 'badge-danger' : ($log->status === 'duplicado' ? 'badge-warning' : 'badge-success') }}">
+                                {{ $log->status }}
+                            </span>
+                        </div>
                     </div>
                     @if($log->detalhes)
-                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">{{ Str::limit($log->detalhes, 200) }}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem; word-break:break-word;">{{ Str::limit($log->detalhes, 300) }}</div>
                     @endif
                 </div>
             @empty
