@@ -36,11 +36,11 @@ class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
-        $csp = "frame-ancestors 'self'; base-uri 'self'; form-action 'self'; img-src 'self' data: blob:";
+        $csp = "frame-ancestors 'self'; base-uri 'self'; form-action 'self'; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;";
         if ($this->isLoginPage($request)) {
             // Página de login: também restringe scripts/styles ao próprio domínio
             // (defesa em profundidade contra XSS que injete exfiltração de credenciais).
-            $csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " . $csp;
+            $csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; " . $csp;
         }
 
         $response->headers->set('Content-Security-Policy', $csp);
