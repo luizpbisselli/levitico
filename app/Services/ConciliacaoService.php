@@ -80,31 +80,38 @@ class ConciliacaoService
      */
     public function extrairChavesNfeDoXml(string $xml): array
     {
-        if (trim($xml) === '') {
+        $xmlTrim = trim($xml);
+        if ($xmlTrim === '') {
             return [];
         }
 
-        $doc = @simplexml_load_string($xml);
-        if ($doc === false) {
+        $dom = new \DOMDocument();
+        if (! @$dom->loadXML($xmlTrim, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
             return [];
         }
 
-        $ns    = $doc->getNamespaces(true);
-        $cteNs = $ns[''] ?? 'http://www.portalfiscal.inf.br/cte';
-        $infCte = $doc->children($cteNs)->CTe->infCte ?? null;
-        if (! $infCte) {
-            return [];
-        }
-
+        $xpath = new \DOMXPath($dom);
         $chaves = [];
-        foreach ($infCte->children($cteNs)->infDoc->infNFe ?? [] as $infNFe) {
-            $chave = preg_replace('/\D/', '', (string) $infNFe->attributes()->Chave);
+
+        // 1. Busca por tags <chNFe> dentro de infDoc / infNFe
+        $nodosChave = $xpath->query("//*[local-name()='infDoc']//*[local-name()='infNFe']//*[local-name()='chNFe'] | //*[local-name()='infNFe']/*[local-name()='chNFe']");
+        foreach ($nodosChave as $nodo) {
+            $chave = preg_replace('/\D/', '', $nodo->nodeValue ?? '');
             if (preg_match('/^\d{44}$/', $chave)) {
                 $chaves[] = $chave;
             }
         }
 
-        return array_unique($chaves);
+        // 2. Busca por atributo Chave / chave em infNFe (formato alternativo/antigo)
+        $nodosAttr = $xpath->query("//*[local-name()='infNFe']/@Chave | //*[local-name()='infNFe']/@chave");
+        foreach ($nodosAttr as $nodo) {
+            $chave = preg_replace('/\D/', '', $nodo->nodeValue ?? '');
+            if (preg_match('/^\d{44}$/', $chave)) {
+                $chaves[] = $chave;
+            }
+        }
+
+        return array_values(array_unique($chaves));
     }
 
     /**
