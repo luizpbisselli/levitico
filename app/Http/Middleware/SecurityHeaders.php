@@ -18,7 +18,19 @@ class SecurityHeaders
 {
     public function handle(Request $request, Closure $next): Response
     {
+        /** @var \Symfony\Component\HttpFoundation\Response $response */
         $response = $next($request);
+
+        // Em rotas de escrita, o token CSRF pode ter expirado (sessão nova, aba antiga).
+        // O Laravel devolve 419 "Page Expired", que não renova o token e vira um loop:
+        // ao renderizar a página do formulário novamente, regenera-se o token para que
+        // o próximo envio funcione em vez de manter o erro 419.
+        if ($response->getStatusCode() === 419
+            && ! in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true)
+            && $request->hasSession()
+            && $request->session()->token() === $request->input('_token')) {
+            $request->session()->regenerateToken();
+        }
 
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
