@@ -31,6 +31,11 @@ class User extends Authenticatable
         return $this->hasOne(Motorista::class);
     }
 
+    public function scopeAdmins($query)
+    {
+        return $query->where('profile', self::PROFILE_ADMIN);
+    }
+
     public function isAdmin(): bool
     {
         return $this->profile === self::PROFILE_ADMIN;

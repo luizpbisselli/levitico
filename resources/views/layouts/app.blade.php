@@ -61,6 +61,7 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,s
         <a href="{{ route('admin.pendencias') }}" class="hover:underline text-sm">Pendências</a>
         <a href="{{ route('admin.modelos.index') }}" class="hover:underline text-sm">WhatsApp</a>
         <a href="{{ route('admin.relatorios') }}" class="hover:underline text-sm">Relatórios</a>
+        <a href="{{ route('admin.usuarios.index') }}" class="hover:underline text-sm">Usuários</a>
         <a href="{{ route('admin.configuracoes') }}" class="hover:underline text-sm">⚙️ Configurações</a>
     @else
         <a href="{{ route('motorista.home') }}" class="hover:underline text-sm font-semibold">Minhas entregas</a>

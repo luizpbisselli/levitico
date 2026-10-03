@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\VeiculoController;
 use App\Http\Controllers\Admin\WhatsappModeloController;
 use App\Http\Controllers\Admin\ConfiguracaoController;
+use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Motorista\HomeController as MotoristaHome;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,11 @@ Route::middleware(['auth', 'profile:admin', 'audit'])->prefix('admin')->name('ad
 
     Route::get('pendencias', [PendenciaController::class, 'index'])->name('pendencias');
     Route::get('relatorios', [RelatorioController::class, 'index'])->name('relatorios');
+
+    // Usuários do sistema (admin/motorista) — cadastro e administração de logins
+    Route::resource('usuarios', UsuarioController::class)
+        ->except(['show'])
+        ->parameters(['usuarios' => 'usuario']);
     Route::resource('modelos', WhatsappModeloController::class)
         ->only(['index', 'edit', 'update'])
         ->parameters(['modelos' => 'modelo']);
