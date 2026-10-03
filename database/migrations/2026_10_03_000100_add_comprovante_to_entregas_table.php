@@ -13,8 +13,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('entregas', function (Blueprint $table) {
-            $table->string('comprovante_path')->nullable()->after('observacao_ocorrencia');
-            $table->timestamp('comprovante_enviado_em')->nullable()->after('comprovante_path');
+            if (! Schema::hasColumn('entregas', 'comprovante_path')) {
+                $table->string('comprovante_path')->nullable()->after('observacao_ocorrencia');
+            }
+            if (! Schema::hasColumn('entregas', 'comprovante_enviado_em')) {
+                $table->timestamp('comprovante_enviado_em')->nullable()->after('comprovante_path');
+            }
         });
     }
 

@@ -14,13 +14,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('configuracoes', function (Blueprint $table) {
-            $table->id();
-            $table->string('chave', 100)->unique();
-            $table->text('valor')->nullable();
-            $table->boolean('sigilosa')->default(false); // valores mascarados na UI
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('configuracoes')) {
+            Schema::create('configuracoes', function (Blueprint $table) {
+                $table->id();
+                $table->string('chave', 100)->unique();
+                $table->text('valor')->nullable();
+                $table->boolean('sigilosa')->default(false); // valores mascarados na UI
+                $table->timestamps();
+            });
+        }
 
         // Migra valores já presentes no .env (se existirem) para o banco,
         // para que a tela "Configurações" já nasça preenchida após o deploy.

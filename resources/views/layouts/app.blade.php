@@ -83,6 +83,7 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,s
 .hover\:bg-slate-500:hover{background:#64748b}.hover\:bg-slate-700:hover{background:#334155}.hover\:bg-blue-700:hover{background:#1d4ed8}
 .hover\:bg-red-700:hover{background:#b91c1c}.hover\:bg-emerald-500:hover{background:#10b981}.hover\:underline:hover{text-decoration:underline}
 .active\:bg-blue-700:active{background:#1d4ed8}.active\:bg-green-700:active{background:#15803d}
+.w-5{width:1.25rem}.w-6{width:1.5rem}.h-5{height:1.25rem}.h-6{height:1.5rem}
 .overflow-x-auto{overflow-x:auto}
 .cursor-pointer{cursor:pointer}
     </style>
@@ -90,10 +91,10 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,s
 <body class="bg-gray-100 min-h-screen">
 @auth
 <nav class="bg-slate-800 text-white px-4 py-3 flex flex-wrap items-center gap-3">
-    <span class="font-bold mr-4 flex items-center gap-1.5">
-        <img src="/icons/icon.svg" alt="Logo" class="w-6 h-6 inline-block">
+    <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('motorista.home') }}" class="font-bold mr-3 flex items-center gap-2 shrink-0">
+        <img src="/icons/icon.svg" alt="Logo" width="24" height="24" style="width:24px;height:24px;min-width:24px;max-width:24px;display:inline-block;vertical-align:middle;object-fit:contain;">
         <span>Fretes</span>
-    </span>
+    </a>
     @if(auth()->user()->isAdmin())
         <a href="{{ route('admin.dashboard') }}" class="hover:underline text-sm">Dashboard</a>
         <a href="{{ route('admin.documentos.ctes') }}" class="hover:underline text-sm">CT-e</a>
